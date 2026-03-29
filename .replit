@@ -18,6 +18,28 @@ modules = ["nodejs-24", "postgresql-16"]
   env = { "CI" = "true" }
 
   [workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8080 pnpm --filter @workspace/api-server run dev & PORT=3000 BASE_PATH=/ pnpm --filter @workspace/sakanmatch run dev"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
   [agent]
   stack = "PNPM_WORKSPACE"
