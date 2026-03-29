@@ -1,0 +1,99 @@
+Continue the existing SakanMatch project from its current state, but do NOT simplify it, do NOT downgrade the design, and do NOT replace the current app with a more basic version.
+
+Critical instruction:
+I want the same high-quality result I already had before, with the same polished startup-style feel, and I want you to COMPLETE the missing parts instead of simplifying the app.
+
+The current version is missing many important parts and feels incomplete. Fix that.
+
+Main rule:
+- Preserve and restore the best existing UI quality
+- Keep the app modern, polished, premium-looking, and production-style
+- Do NOT switch to a simpler white/basic layout if a more polished version already existed
+- Do NOT remove features that were already present
+- Complete the app to the expected final level
+
+What is currently missing or not good enough:
+1. The design quality has been downgraded and no longer feels like the stronger version of SakanMatch
+2. The listing creation flow still uses raw image URLs instead of a proper image upload experience
+3. The premium page feels too basic and must remain aligned with the premium startup look
+4. The app still feels incomplete and not fully connected end-to-end
+5. Important product polish and core features are still missing or not finished
+
+What I want now:
+
+1. RESTORE / PRESERVE THE BEST UI QUALITY
+- Keep the strongest version of the existing branding and layout
+- Use the polished modern startup feel
+- Keep SakanMatch visually premium and consistent
+- Do not replace polished pages with plain/basic versions
+
+2. COMPLETE LISTING CREATION PROPERLY
+- Replace the raw “Image URLs” textarea with a real image upload flow
+- Support multiple image uploads
+- Show previews before publishing
+- Save uploaded images properly
+- Keep the create listing page visually polished
+
+3. COMPLETE THE OWNER FLOW
+- Owner can create listings
+- Owner can upload multiple photos
+- Owner can publish listing successfully
+- Owner can view their listings in dashboard
+- Owner can edit listing if the structure already supports it
+- Listing detail page should show a proper image gallery
+
+4. COMPLETE THE PREMIUM FLOW
+- Keep Premium only for owners
+- Preserve a polished premium page
+- Keep PayPal integration connected properly
+- After successful payment, premium must reflect in the dashboard
+- Premium badge must appear correctly for premium owners
+- Seekers must not see premium upgrade purchase flow
+
+5. COMPLETE DASHBOARD
+- Dashboard should feel complete and polished
+- Show role badge
+- Show premium badge if active
+- Show owner listing count
+- Show useful owner actions
+- Keep layout clean and startup-like
+
+6. COMPLETE CORE USER FEATURES
+- Listings browsing must work smoothly
+- Listing details must work
+- Saved listings/favorites should work if already present
+- Messaging flow should work if already present
+- Preserve any matches/matching-related structure if already present
+- Do not regress existing working features
+
+7. FIX INCOMPLETE / PARTIAL IMPLEMENTATIONS
+- Search for placeholders, unfinished states, TODO-level logic, mock flows, or downgraded pages
+- Replace incomplete experiences with working MVP-quality flows
+- Make the app feel complete, not half-built
+
+8. KEEP AUTH WORKING
+- Do not break login/signup/logout
+- Preserve session flow
+- Keep protected routes working
+
+9. PRODUCT QUALITY STANDARD
+This app should feel like:
+- a startup MVP
+- visually polished
+- connected end-to-end
+- not a class exercise
+- not a stripped-down rebuild
+
+10. IMPORTANT INSTRUCTION
+Before making major changes, inspect the current app and identify:
+- which existing pages/features are already strong and must be preserved
+- which parts are downgraded or incomplete
+Then improve the incomplete parts without harming the strong existing parts.
+
+11. FINAL OUTPUT
+At the end, provide:
+- what strong parts were preserved
+- what missing parts were completed
+- what pages were improved
+- what functionality was added or restored
+- what still remains if anything

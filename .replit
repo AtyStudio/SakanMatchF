@@ -1,0 +1,39 @@
+modules = ["nodejs-24", "postgresql-16"]
+
+  [[artifacts]]
+  id = "artifacts/sakanmatch"
+
+  [[artifacts]]
+  id = "artifacts/api-server"
+
+  [[artifacts]]
+  id = "artifacts/mockup-sandbox"
+
+  [deployment]
+  router = "application"
+  deploymentTarget = "autoscale"
+
+  [deployment.postBuild]
+  args = ["pnpm", "store", "prune"]
+  env = { "CI" = "true" }
+
+  [workflows]
+
+  [agent]
+  stack = "PNPM_WORKSPACE"
+expertMode = true
+
+  [postMerge]
+  path = "scripts/post-merge.sh"
+  timeoutMs = 20000
+
+  [userenv]
+
+  [userenv.shared]
+
+[nix]
+channel = "stable-25_05"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-e1fdea2f-86e4-46af-95e3-d55817b78e6a"
+  

@@ -1,0 +1,100 @@
+Implement the final missing core feature in SakanMatch: people matching and richer user profiles.
+
+GOAL:
+Make SakanMatch feel like a real roommate-matching platform, not just a listings app.
+
+I want two major upgrades:
+
+1. People matching system
+2. More detailed user profiles
+
+1) People Matching System
+Add matching between users, not فقط between users and listings.
+
+Requirements:
+- Users should be able to discover compatible roommates / people
+- Matching should be based on profile compatibility and preferences
+- Add a “Top People Matches” section in the dashboard
+- Add a dedicated people matching page if needed
+
+Use a simple but useful scoring system based on:
+- city
+- budget
+- lifestyle
+- smoking / non-smoking
+- gender preference
+- cleanliness
+- sleep schedule
+- study/work routine
+- noise tolerance
+- guest preference
+- pet preference
+
+Matching result:
+- show percentage or score
+- sort from best match to lowest
+- explain briefly why the match is strong
+  example:
+  “Same city, similar budget, both prefer quiet lifestyle”
+
+2) Richer User Profiles
+Upgrade the profile system so every user has a more complete roommate profile.
+
+Add these profile fields:
+- full name
+- age range
+- gender
+- city
+- budget range
+- occupation (student / employee / freelancer / other)
+- lifestyle (quiet / social / balanced)
+- smoking preference
+- cleanliness level
+- sleep schedule (early / late / flexible)
+- guest preference
+- pet preference
+- short bio / about me
+- preferred move-in date
+- profile photo/avatar
+- roommate preference section
+
+Profile behavior:
+- Users should be able to edit and save their profile
+- Missing profile info should show a “Complete your profile” prompt
+- Matching should rely on this profile data
+- Profiles should look modern, clean, and trustworthy
+
+3) UI / UX
+- Add a clean profile page with sections/cards
+- Add a match card for people similar to listing cards
+- Show compatibility score clearly
+- Show key shared traits in the card
+- Keep design consistent with SakanMatch
+- Support both light mode and dark mode
+- Keep it modern and startup-like
+
+4) Dashboard additions
+For seekers/users:
+- Top People Matches
+- Complete Profile progress
+- Suggested roommates
+- Recent profile visitors or recent matches if easy
+
+5) Backend / data model
+- Extend the user profile schema to support the new fields
+- Add matching logic on backend or shared logic layer
+- Return sorted people matches
+- Exclude the current user from results
+- Respect gender preference and other compatibility filters
+
+6) Important rules
+- Keep matching realistic and simple
+- Do not overcomplicate with AI if not necessary
+- Make profiles genuinely useful for finding roommates
+- Focus on trust, compatibility, and clarity
+
+EXPECTED RESULT:
+- Users can create detailed roommate profiles
+- Users can discover and match with compatible people
+- The app feels like a real roommate-matching product
+- Matching is based on profile compatibility, not random results

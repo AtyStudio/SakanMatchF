@@ -1,0 +1,93 @@
+Implement full Premium (paid plan) features in SakanMatch based on the existing plan comparison UI.
+
+Goal:
+The Premium plan must not be visual only. All listed Premium features must be fully functional and enforced in both backend and frontend.
+
+Features to implement:
+
+1. Active listings limit
+
+* Free users: max 1 active listing
+* Premium users: unlimited listings
+* Enforce this in backend when creating listings
+* Show proper error message if limit exceeded
+
+2. Photos per listing
+
+* Free users: maximum 4 images per listing
+* Premium users: up to 10 images per listing
+* Enforce validation in backend
+* Prevent upload beyond limit in frontend UI
+
+3. Search ranking (priority)
+
+* Premium listings should appear first in search results and listing feeds
+* Modify backend queries to sort:
+  premium listings first, then others
+* Within same group, sort by newest
+
+4. Featured badge
+
+* Add a "Featured" badge visible on listing cards for premium users
+* Style it cleanly (highlighted badge)
+
+5. Per-listing analytics
+
+* Track:
+
+  * number of views
+  * number of contact clicks (message owner)
+* Store analytics per listing in database
+* Show analytics to listing owner in Dashboard or Listing Detail page
+
+6. Views & contact clicks tracking
+
+* Increment view count when someone opens a listing
+* Increment contact clicks when user clicks "Message Owner"
+* Ensure no spam (basic protection like per session or debounce)
+
+7. Request tracking
+
+* For each listing:
+
+  * track join requests (pending / accepted / declined)
+* Show request count and status in owner dashboard
+
+8. Verified owner badge
+
+* Premium users get a "Verified" badge on:
+
+  * profile page
+  * listing cards
+* Display badge clearly next to name
+
+Backend requirements:
+
+* Add necessary fields in database (e.g. isPremium, viewsCount, contactClicks, etc.)
+* Ensure all restrictions are enforced server-side (not frontend only)
+* Update existing endpoints accordingly
+
+Frontend requirements:
+
+* Update UI dynamically based on user plan (free vs premium)
+* Disable or restrict actions visually when user is free
+* Show upgrade prompts where relevant
+* Keep UI clean and consistent with dark theme
+
+Integration:
+
+* Use existing premium/subscription system (PayPal if already implemented)
+* Make sure premium status is correctly detected
+
+Testing:
+
+* Test with free user → verify all limits apply
+* Test with premium user → verify all features unlocked
+* Ensure no page is broken
+* Ensure performance is good
+
+Final:
+
+* Explain what was implemented
+* Show updated files
+* Confirm all Premium features now actually work

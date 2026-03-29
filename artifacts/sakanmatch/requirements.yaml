@@ -1,0 +1,19 @@
+packages:
+  "framer-motion": "For smooth page transitions and stagger animations"
+  "@paypal/react-paypal-js": "For PayPal Smart Buttons integration"
+  "lucide-react": "For beautiful consistent icons"
+  "clsx": "For conditional class names"
+  "tailwind-merge": "For merging tailwind classes safely"
+  "date-fns": "For formatting the premium activation date and listing creation dates"
+
+images:
+  - path: "artifacts/sakanmatch/public/images/hero-bg.png"
+    description: "A stunning, modern architectural interior of a Moroccan riad with warm neutral tones, beautiful arches, soft natural sunlight, minimal and clean"
+    aspect_ratio: "16:9"
+  - path: "artifacts/sakanmatch/public/images/logo.png"
+    description: "Modern, extremely minimal geometric logo mark for a premium real estate platform, using terracotta and warm gray tones, clean background"
+    aspect_ratio: "1:1"
+
+notes:
+  - "Assuming Vite uses /api proxy to reach the backend"
+  - "PayPal integration assumes standard CAPTURE intent with actions.order.capture() on the frontend"

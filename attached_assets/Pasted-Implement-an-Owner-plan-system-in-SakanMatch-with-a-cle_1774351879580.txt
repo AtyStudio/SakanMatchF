@@ -1,0 +1,114 @@
+Implement an Owner plan system in SakanMatch with a clear comparison between Free Owner and Premium Owner.
+
+GOAL:
+Create a strong premium offering for property owners/hosts only, so the app clearly shows why Premium is more valuable than the free plan. Focus only on owners for now, not seekers.
+
+IMPORTANT IMPLEMENTATION RULE:
+Premium must be controlled by the backend only.
+Do not allow the frontend to fake premium access.
+If payment/subscription is successful, the backend should mark the owner as premium.
+If not, the owner stays on the free plan.
+
+OWNER PLAN COMPARISON TO IMPLEMENT:
+
+Free Owner:
+- Can publish only 1 listing
+- Basic visibility in listing results
+- No special badge
+- Limited images per listing (3 to 4 max)
+- Basic listing details only
+- No analytics
+- Basic requests view
+- Basic messaging experience
+- Normal profile visibility
+
+Premium Owner:
+- Can publish multiple listings (or unlimited if easier)
+- Featured visibility in listing results
+- Featured / Trusted Owner badge
+- More images per listing (up to 10 or more)
+- Richer listing presentation with enhanced details
+- Analytics dashboard for each listing (views, clicks, requests)
+- Better requests management and cleaner organization
+- Better messaging tools (filtering, pinned conversations, clearer inbox) if easy to implement
+- Boosted owner profile visibility
+- Faster / priority exposure for listings
+
+IMPLEMENTATION PRIORITY:
+1. Backend/data model
+2. Enforcement of free vs premium limits
+3. Listing ranking / badge logic
+4. Dashboard analytics and upgrade prompts
+5. Pricing/comparison UI polish
+
+TASKS:
+
+1. Database / backend logic
+- Add a plan field or subscription status for owners
+- Distinguish between free owners and premium owners
+- Enforce listing limits for free owners
+- Enforce image upload limits based on plan
+- Add support for analytics counters on listings (views, clicks, requests)
+
+2. Listing publishing rules
+- Free owners can only create 1 listing
+- Premium owners can create multiple listings
+- If a free owner reaches the limit, show a clear upgrade message
+
+3. Listing visibility system
+- Premium listings should appear higher in search results or in a featured section
+- Add a visual badge on premium listings: “Featured” or “Trusted Owner”
+- Make premium listings visually stronger but still clean and elegant
+
+4. Listing form / details
+- Free owners: limited number of images and standard fields
+- Premium owners: more images and richer listing content
+- If premium-specific options are locked for free users, show them as upgrade opportunities
+
+5. Owner analytics
+- Add simple analytics visible only to premium owners:
+  - number of views
+  - number of contact clicks
+  - number of requests received
+- Show analytics cards inside the owner dashboard
+
+6. Requests management
+- Free owners: basic requests list
+- Premium owners: more organized request management with cleaner UI and optional sorting/filtering if possible
+
+7. Messaging improvements
+- Free owners: standard messaging
+- Premium owners: improved inbox UX with pinned conversations, better organization, or filters if possible
+- Keep implementation realistic and do not overcomplicate
+
+8. Pricing / comparison UI
+- Create or update a pricing/comparison section for owners only
+- Show a clear comparison table between Free Owner and Premium Owner
+- Use strong but professional copy that explains the value of Premium
+- Example headline:
+  “Get More Visibility and Rent Faster”
+- Make Premium visually highlighted
+
+9. Upgrade prompts
+- If a free owner hits a limitation (listing limit, image limit, analytics locked, featured visibility locked), show a clean upgrade CTA
+- Make the upgrade prompt persuasive but not annoying
+
+10. UI consistency
+- Keep everything aligned with the existing SakanMatch design system
+- Support both light mode and dark mode
+- Make sure the owner dashboard, listing cards, pricing page, and upgrade modals feel modern and startup-like
+
+IMPORTANT:
+- Focus only on owners for now
+- Do not implement seeker premium features yet
+- Keep the implementation clean, realistic, and useful
+- Do not make it feel fake or overloaded
+- Make Premium clearly more valuable than Free, but keep Free usable
+- Do not start with cosmetic polishing before the backend logic and limits are working correctly
+
+EXPECTED RESULT:
+- Owners have two clear plans: Free and Premium
+- Free owners can use the app but with real limitations
+- Premium owners get better visibility, more listings, more images, analytics, and a stronger dashboard
+- Premium status is enforced by the backend
+- The app feels like a real product with a believable monetization model

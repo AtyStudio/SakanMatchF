@@ -1,0 +1,274 @@
+Convert the current SakanMatch Premium payment system from a one-time PayPal payment flow to a true monthly recurring subscription system using PayPal Subscriptions API.
+
+Important:
+- Premium must be a real monthly subscription, not a one-time payment
+- Keep the current UI/design/branding as much as possible
+- Do not redesign the app
+- Preserve the polished dark premium look
+- Premium remains only for owners, not seekers
+- Remove any logic that treats premium as a one-time permanent upgrade
+- Keep sandbox mode for now
+
+Current stack:
+- Frontend: React
+- Backend: Node.js + Express
+- Database: PostgreSQL with Drizzle ORM
+- Auth: JWT
+- Hosted on Replit
+
+Environment variables already expected:
+- PAYPAL_CLIENT_ID
+- PAYPAL_CLIENT_SECRET
+- PAYPAL_WEBHOOK_ID
+- PAYPAL_ENV=sandbox
+
+Main goal:
+Owners should subscribe to Premium monthly through PayPal. Premium stays active only while the subscription is active. If the subscription is cancelled, suspended, expired, or payment fails permanently, premium should no longer remain active.
+
+==================================================
+1. REPLACE ONE-TIME PAYMENT LOGIC
+==================================================
+
+Remove the current one-time premium order/capture logic as the main premium flow.
+
+This means:
+- Do not use PayPal Orders API for premium activation anymore
+- Do not activate premium permanently after one capture
+- Replace any one-time “Upgrade to Premium” logic with subscription logic
+
+If any existing one-time payment code exists for premium:
+- deprecate or remove it cleanly
+- do not break the rest of the app
+
+==================================================
+2. PAYPAL PRODUCT + BILLING PLAN
+==================================================
+
+Implement proper PayPal subscription setup using:
+- PayPal Product
+- PayPal Billing Plan (monthly)
+
+Requirements:
+- Create or support a PayPal Product for SakanMatch Premium
+- Create or support a monthly Billing Plan
+- The billing cycle should be monthly recurring
+- Price should match the current premium plan price already shown in the app
+- If necessary, create backend helper endpoints/utilities to create/fetch the product and plan in sandbox
+- Store the resulting PayPal Plan ID in config or environment usage so it can be reused
+
+If a reusable plan ID is needed, support:
+- PAYPAL_PREMIUM_PLAN_ID
+
+If plan creation is automated, explain how it works.
+If plan creation must happen once then be reused, implement that flow clearly.
+
+==================================================
+3. DATABASE CHANGES
+==================================================
+
+Update the database so subscription state is tracked properly.
+
+Users table should support:
+- isPremium boolean
+- premiumActivatedAt timestamp nullable
+- premiumSource text nullable
+- paypalSubscriptionId text nullable
+- subscriptionStatus text nullable
+- subscriptionPlanId text nullable
+- lastPaymentAt timestamp nullable
+
+Create a new table if useful, for example premiumSubscriptions or similar, to track:
+- id
+- userId
+- paypalSubscriptionId
+- paypalPlanId
+- status
+- startTime
+- lastPaymentAt
+- createdAt
+- updatedAt
+
+If a separate subscriptions table is used, keep it clean and normalized.
+
+Run the required migrations and ensure DB schema matches backend code exactly.
+
+==================================================
+4. BACKEND: CREATE SUBSCRIPTION ENDPOINT
+==================================================
+
+Create:
+POST /api/paypal/create-subscription
+
+Requirements:
+- authenticated route
+- owner only
+- return 403 for seekers
+- create a PayPal subscription using the monthly plan
+- associate the subscription with the authenticated user
+- return the PayPal approval URL (and subscription ID if available)
+
+If needed, support either:
+- returning approval URL for redirect
+or
+- returning subscription data for PayPal JS subscription flow
+
+Prefer the cleaner PayPal subscription flow that integrates well with the frontend.
+
+==================================================
+5. FRONTEND: SUBSCRIPTION BUTTON
+==================================================
+
+On the Premium page:
+- owners only should see the premium subscription purchase UI
+- seekers should still see a friendly “Premium is for owners only” message
+- keep one clean premium plan card
+- replace the current one-time payment button with a subscription button
+
+Preferred UX:
+- use PayPal JavaScript SDK subscription flow if feasible
+- avoid ugly full-page redirects if possible
+- keep the flow polished and modern
+
+User flow:
+- owner opens premium page
+- clicks “Subscribe to Premium”
+- PayPal approval flow opens
+- after approval, show a message like:
+  “Subscription created. Your premium status will update automatically.”
+- frontend re-fetches premium status after return/approval
+
+Keep the page polished and aligned with the current design.
+
+==================================================
+6. WEBHOOKS: SUBSCRIPTION EVENTS
+==================================================
+
+Update the webhook system to handle subscription events, not only payment capture events.
+
+Create/fix:
+POST /api/paypal/webhook
+
+Requirements:
+- public route
+- verify webhook signature securely
+- use PAYPAL_WEBHOOK_ID
+- add structured logging
+- make processing idempotent
+- invalid signature returns 400
+- valid handled events return 200 quickly
+
+Handle relevant subscription lifecycle events, including at minimum:
+- BILLING.SUBSCRIPTION.CREATED
+- BILLING.SUBSCRIPTION.ACTIVATED
+- BILLING.SUBSCRIPTION.CANCELLED
+- BILLING.SUBSCRIPTION.SUSPENDED
+- BILLING.SUBSCRIPTION.EXPIRED
+- PAYMENT.SALE.COMPLETED
+- BILLING.SUBSCRIPTION.PAYMENT.FAILED
+
+Behavior:
+- On BILLING.SUBSCRIPTION.ACTIVATED:
+  - set user.isPremium = true
+  - set premiumActivatedAt = now
+  - set premiumSource = "paypal"
+  - save paypalSubscriptionId
+  - save subscriptionStatus = active
+
+- On PAYMENT.SALE.COMPLETED:
+  - update lastPaymentAt
+  - keep premium active if subscription is valid
+
+- On BILLING.SUBSCRIPTION.CANCELLED:
+  - set subscriptionStatus = cancelled
+  - set user.isPremium = false
+
+- On BILLING.SUBSCRIPTION.SUSPENDED:
+  - set subscriptionStatus = suspended
+  - set user.isPremium = false
+
+- On BILLING.SUBSCRIPTION.EXPIRED:
+  - set subscriptionStatus = expired
+  - set user.isPremium = false
+
+- On BILLING.SUBSCRIPTION.PAYMENT.FAILED:
+  - update subscription status appropriately
+  - if the subscription should no longer grant premium, disable premium
+
+Make sure duplicate webhook deliveries do not cause duplicated updates.
+
+==================================================
+7. PREMIUM STATUS API
+==================================================
+
+Update:
+GET /api/premium/status
+
+Return:
+- isPremium
+- premiumActivatedAt
+- premiumSource
+- subscriptionStatus
+- paypalSubscriptionId
+- lastPaymentAt
+
+Use this endpoint in:
+- Premium page
+- Dashboard
+
+==================================================
+8. DASHBOARD UPDATES
+==================================================
+
+Keep the current dashboard design as much as possible.
+
+Requirements:
+- show role badge
+- show premium badge for premium owners
+- show subscription status if useful
+- show upgrade CTA only for non-premium owners
+- seekers must not see premium subscription purchase UI
+- if subscription is cancelled/suspended/expired, reflect that clearly
+
+==================================================
+9. REMOVE OLD FREE TRIAL / DEMO / PERMANENT PREMIUM ASSUMPTIONS
+==================================================
+
+Completely remove:
+- free trial UI and logic
+- old simulated premium activation
+- old one-time permanent upgrade assumptions
+
+Premium should now depend on live subscription status only.
+
+==================================================
+10. TESTING
+==================================================
+
+Test these flows in sandbox:
+1. owner signup/login
+2. owner opens premium page
+3. owner subscribes via PayPal sandbox
+4. webhook fires
+5. owner becomes premium
+6. dashboard shows premium badge
+7. page refresh still shows correct premium status
+8. seeker does not see subscription purchase flow
+9. cancelled/suspended subscription removes premium correctly
+
+==================================================
+11. OUTPUT
+==================================================
+
+When finished, provide:
+1. what old one-time payment logic was replaced
+2. what files were changed
+3. what DB changes were made
+4. what webhook events are now handled
+5. how monthly subscription now works end-to-end
+6. exact sandbox testing steps
+7. any remaining limitations
+
+Final instruction:
+Do not downgrade the app.
+Do not rebuild a simpler version.
+Preserve the current polished result and convert premium into a real recurring monthly subscription system.

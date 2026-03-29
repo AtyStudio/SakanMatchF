@@ -1,0 +1,226 @@
+Build and fix SakanMatch as a fully working production-style MVP with authentication, PostgreSQL database, and PayPal premium integration.
+
+Important:
+- This must be a COMPLETE, WORKING system end-to-end
+- Do not leave partial features or broken flows
+- Do not require manual fixes later
+- All logic must be stable and production-like
+
+Tech stack:
+- Frontend: React (keep current UI)
+- Backend: Node.js + Express
+- Database: PostgreSQL with Drizzle ORM
+- Auth: JWT
+- Deployment: Replit
+
+App goal:
+A platform where users can find shared housing (collocation), and owners can upgrade to Premium using PayPal.
+
+---------------------------------------
+1. FIX / BUILD AUTH SYSTEM (CRITICAL)
+---------------------------------------
+
+Implement a fully working auth system:
+
+Features:
+- Signup (email + password + role: owner or seeker)
+- Login
+- Logout
+- Persistent sessions (stay logged in after refresh)
+- Protected routes
+
+Backend:
+- Hash passwords (bcrypt)
+- Validate credentials properly
+- Generate JWT token
+- Middleware to protect routes
+
+Frontend:
+- Store token securely (localStorage)
+- Restore user on page reload
+- Redirect after login/signup
+- Show clear error messages
+
+Test:
+- Create account
+- Login
+- Refresh page
+- Logout
+- Wrong password
+- Duplicate signup
+
+---------------------------------------
+2. DATABASE (POSTGRES + DRIZZLE)
+---------------------------------------
+
+Users table:
+- id
+- email
+- password
+- role (owner | seeker)
+- isPremium (boolean default false)
+- premiumActivatedAt (timestamp)
+- premiumSource (text)
+- createdAt
+
+Listings table (if not exists):
+- id
+- title
+- price
+- city
+- images (array)
+- ownerId
+
+PremiumPurchases table:
+- id
+- userId
+- paypalOrderId
+- paypalCaptureId
+- invoiceId
+- amount
+- currency
+- status (pending | completed | denied)
+- createdAt
+- updatedAt
+
+IMPORTANT:
+- Ensure DB schema matches code
+- Run migrations correctly (no missing columns)
+- Avoid drizzle interactive blocking issues
+
+---------------------------------------
+3. FIX ALL CURRENT BUGS
+---------------------------------------
+
+- Fix login/signup not working
+- Fix API errors
+- Fix database mismatches
+- Fix server crashes
+- Add logs for debugging
+- Ensure API always returns valid JSON
+
+---------------------------------------
+4. PAYPAL INTEGRATION (SMART BUTTONS)
+---------------------------------------
+
+Use PayPal JavaScript SDK (popup experience, NOT redirect page)
+
+Environment variables:
+- PAYPAL_CLIENT_ID
+- PAYPAL_CLIENT_SECRET
+- PAYPAL_WEBHOOK_ID
+- PAYPAL_ENV=sandbox
+
+Backend:
+
+Create:
+POST /api/paypal/create-premium-order
+
+- Auth required
+- Owner only
+- Create PayPal order (intent: CAPTURE)
+- Include:
+  custom_id = user.id
+  invoice_id = premium_<userId>_<timestamp>
+- Save pending purchase
+- Return:
+  orderID
+
+Webhook:
+POST /api/paypal/webhook
+
+- Verify signature
+- Handle:
+  PAYMENT.CAPTURE.COMPLETED
+  PAYMENT.CAPTURE.PENDING
+  PAYMENT.CAPTURE.DENIED
+
+On completed:
+- update purchase
+- set user.isPremium = true
+- set premiumActivatedAt
+- set premiumSource = "paypal"
+
+Make webhook idempotent
+
+---------------------------------------
+5. FRONTEND PAYPAL BUTTON
+---------------------------------------
+
+On Premium page:
+
+- Show only for owners
+- Show one plan only
+- Add PayPal Smart Button (popup)
+
+Flow:
+
+createOrder:
+- call backend /create-premium-order
+- return orderID
+
+onApprove:
+- show message:
+  "Payment received. Your premium will activate shortly"
+- refresh premium status
+
+DO NOT:
+- use PayPal redirect page
+- use static payment links
+
+---------------------------------------
+6. DASHBOARD
+---------------------------------------
+
+- Show:
+  - role badge
+  - premium badge if active
+- Hide premium for seekers
+- Show upgrade button only for owners
+
+---------------------------------------
+7. PREMIUM STATUS API
+---------------------------------------
+
+GET /api/premium/status
+
+Return:
+- isPremium
+- premiumActivatedAt
+- premiumSource
+
+---------------------------------------
+8. FINAL VALIDATION
+---------------------------------------
+
+Test full flow:
+
+1. Signup
+2. Login
+3. Create listing
+4. Click Upgrade
+5. Pay with PayPal sandbox
+6. Webhook triggers
+7. Premium activates
+8. Refresh → still premium
+
+---------------------------------------
+9. IMPORTANT RULES
+---------------------------------------
+
+- Do NOT redesign UI
+- Do NOT leave TODOs
+- Do NOT skip steps
+- Fix root causes, not quick hacks
+- Ensure everything works end-to-end
+
+---------------------------------------
+10. OUTPUT
+---------------------------------------
+
+At the end, explain:
+- what was broken
+- what was fixed
+- files changed
+- database changes
+- how to test PayPal sandbox

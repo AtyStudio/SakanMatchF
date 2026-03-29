@@ -1,0 +1,61 @@
+Upgrade my SakanMatch app by combining the modern UI design with the missing core features from the previous version.
+
+IMPORTANT:
+- Do not keep the app dark-only
+- Add full support for both light mode and dark mode
+- Add a theme toggle and make sure both themes look polished, modern, and consistent
+- Keep the app premium, clean, and startup-like
+
+Core features to include or restore:
+
+1. Landing page
+- Create a professional landing page as the first page
+- Add hero section, features, how it works, benefits, and CTA
+- Make it visually impressive in both light and dark modes
+
+2. Listings system
+- Show rental homes / rooms in a clean card layout
+- Each listing should have image, title, city, price, short description, and CTA button
+
+3. Matching system
+- Add matching between users and homes / roommates
+- Use user preferences like city, budget, lifestyle, smoking, gender preference, etc.
+- Show top matches on dashboard
+
+4. Messaging system
+- Add conversations between users
+- Users should be able to contact owners or potential roommates
+- Add message preview section in dashboard
+
+5. Favorites
+- Allow users to save listings
+- Add a favorites section/page
+
+6. Request / contact actions
+- Add Contact Owner
+- Add Request to Join
+- Track requests in dashboard
+
+7. Dashboard
+- Include:
+  - top matches
+  - saved listings
+  - recent messages
+  - requests
+  - recent listings
+- Keep it clean and useful
+
+8. UI / UX improvements
+- Make navigation smooth and intuitive
+- Improve spacing, hierarchy, and responsiveness
+- Use a consistent design system across all pages
+
+9. Theme system
+- Add light mode and dark mode
+- Add theme toggle
+- Make sure cards, navbar, buttons, inputs, sections, and dashboard all adapt beautifully in both themes
+
+IMPORTANT:
+- Keep the app idea focused on housing rental + roommate matching
+- Do not make it look like a basic classified ads website
+- Make it feel like a real product startup with modern UX and strong features

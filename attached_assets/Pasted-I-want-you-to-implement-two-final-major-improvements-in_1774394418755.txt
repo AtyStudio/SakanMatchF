@@ -1,0 +1,60 @@
+I want you to implement two final major improvements in my SakanMatch web app.
+
+1) Replace Avatar URL with real image upload
+Current issue:
+In the Profile / Personal Info form, the avatar is entered using a text field called "Avatar URL". This is not practical for users.
+
+What I want:
+- Remove the Avatar URL text input completely.
+- Replace it with a real image upload feature.
+- The user must be able to click the avatar area or an upload button and choose an image from their device.
+- Show an instant preview of the selected avatar image.
+- Save the uploaded image properly and store its path/URL in the database.
+- Keep the existing avatar visible if the user already has one.
+- Validate file type (only images) and add a reasonable file size limit.
+- Make the upload UI clean and modern.
+- If needed, create the backend upload endpoint and storage logic.
+- Make sure this works in both edit profile and profile display.
+
+Important:
+- Do not keep the old Avatar URL field.
+- The feature must use actual file upload, not manual links.
+
+2) Add multilingual support for the whole website
+I want the website to support 3 languages:
+- English
+- French
+- Arabic
+
+What I want:
+- Add a language switcher in a clear place in the UI (header, navbar, or settings).
+- Translate the full interface, including:
+  - landing page
+  - auth pages
+  - dashboard
+  - profile page
+  - listing pages
+  - buttons
+  - labels
+  - placeholders
+  - errors
+  - empty states
+  - navigation
+- Arabic must support RTL layout correctly.
+- English and French stay LTR.
+- When the user changes language, the app should immediately update.
+- Persist the selected language so it remains after refresh.
+- Use a proper i18n structure, not hardcoded if/else everywhere.
+- Organize translations cleanly, for example with translation JSON files per language.
+
+Technical expectations:
+- Implement this cleanly in the current React app structure.
+- Use a scalable internationalization setup.
+- Make sure dark mode styling and layout still look good in all 3 languages.
+- Do not break existing pages or forms.
+- Keep the UI polished and production-ready.
+
+Also:
+- Review the profile form after these changes and make sure the typing/focus issue is gone.
+- Test the full profile edit flow after implementing avatar upload and translations.
+- At the end, explain exactly what you changed file by file.
