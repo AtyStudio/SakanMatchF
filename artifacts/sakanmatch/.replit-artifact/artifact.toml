@@ -12,7 +12,7 @@ kind = "web"
   [[services]]
   name = "web"
   paths = [ "/" ]
-  localPort = 19198
+  localPort = 3000
 
   [services.development]
   run = "pnpm --filter @workspace/sakanmatch run dev"
@@ -27,6 +27,6 @@ kind = "web"
   to = "/index.html"
 
   [services.env]
-  PORT = "19198"
+  PORT = "3000"
   BASE_PATH = "/"
   
