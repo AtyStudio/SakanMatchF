@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGetListings } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -15,6 +15,7 @@ export default function Home() {
   const [city, setCity] = useState("");
   const [searchCity, setSearchCity] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const listingsSectionRef = useRef<HTMLElement>(null);
   const { user } = useAuth();
   const { t } = useTranslation();
 
@@ -31,7 +32,14 @@ export default function Home() {
     }
   }, [user]);
 
-  const handleSearch = () => setSearchCity(city);
+  const scrollToListings = () => {
+    listingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleSearch = () => {
+    setSearchCity(city);
+    setTimeout(scrollToListings, 100);
+  };
 
   const handleFavoriteChange = (listingId: number, isFav: boolean) => {
     setFavoriteIds(prev =>
@@ -104,7 +112,7 @@ export default function Home() {
                 {MOROCCAN_CITIES.slice(0, 5).map(c => (
                   <button
                     key={c}
-                    onClick={() => { setCity(c); setSearchCity(c); }}
+                    onClick={() => { setCity(c); setSearchCity(c); setTimeout(scrollToListings, 100); }}
                     className="text-xs font-medium px-3 py-1.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
                   >
                     {c}
@@ -239,7 +247,7 @@ export default function Home() {
         </section>
 
         {/* Listings Section */}
-        <section className="py-24 bg-background">
+        <section ref={listingsSectionRef} className="py-24 bg-background">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-10">
               <div>
