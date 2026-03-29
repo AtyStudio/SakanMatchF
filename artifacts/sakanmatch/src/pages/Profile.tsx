@@ -3,8 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { api, type UserProfileData, type FullProfileResponse } from "@/lib/api";
-import { useRequestUploadUrl } from "@workspace/api-client-react";
+import { api, uploadFile, type UserProfileData, type FullProfileResponse } from "@/lib/api";
 import { Loader2, ArrowLeft, User, Briefcase, Moon, Heart, FileText, Camera, CheckCircle, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -84,8 +83,6 @@ export default function Profile() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const requestUploadUrlMutation = useRequestUploadUrl();
-
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
@@ -166,22 +163,8 @@ export default function Profile() {
       let finalAvatarUrl = avatarUrl;
 
       if (avatarFile) {
-        const { uploadURL, objectPath } = await requestUploadUrlMutation.mutateAsync({
-          data: { name: avatarFile.name, size: avatarFile.size, contentType: avatarFile.type },
-        });
-
-        const uploadResponse = await fetch(uploadURL, {
-          method: "PUT",
-          headers: { "Content-Type": avatarFile.type },
-          body: avatarFile,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(t("profile.avatarUploadFailed"));
-        }
-
-        const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-        finalAvatarUrl = `${base}/api/storage${objectPath}`;
+        const { objectPath } = await uploadFile(avatarFile);
+        finalAvatarUrl = objectPath;
       }
 
       const profileData: UserProfileData = {

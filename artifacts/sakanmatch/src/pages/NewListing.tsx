@@ -2,7 +2,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
 import { useLocation } from "wouter";
-import { useCreateListing, useRequestUploadUrl } from "@workspace/api-client-react";
+import { useCreateListing } from "@workspace/api-client-react";
+import { uploadFile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Image as ImageIcon, X, Upload, Crown, Star, BarChart2, Layers } from "lucide-react";
 import { Link } from "wouter";
@@ -84,8 +85,6 @@ export default function NewListing() {
   const isPremium = user?.isPremium && user?.subscriptionStatus === "active";
   const imageLimit = isPremium ? 10 : 4;
 
-  const requestUploadUrlMutation = useRequestUploadUrl();
-
   const createMutation = useCreateListing({
     mutation: {
       onSuccess: () => {
@@ -110,23 +109,10 @@ export default function NewListing() {
     }
   }, [user, isAuthLoading]);
 
-  const uploadFile = async (file: File, imageId: string) => {
+  const handleImageUpload = async (file: File, imageId: string) => {
     setImages(prev => prev.map(img => img.id === imageId ? { ...img, uploading: true } : img));
     try {
-      const { uploadURL, objectPath } = await requestUploadUrlMutation.mutateAsync({
-        data: { name: file.name, size: file.size, contentType: file.type }
-      });
-
-      const uploadResponse = await fetch(uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed with status ${uploadResponse.status}`);
-      }
-
+      const { objectPath } = await uploadFile(file);
       setImages(prev => prev.map(img => img.id === imageId ? { ...img, uploading: false, uploadedPath: objectPath } : img));
     } catch {
       setImages(prev => prev.map(img => img.id === imageId ? { ...img, uploading: false, error: "Upload failed" } : img));
@@ -163,7 +149,7 @@ export default function NewListing() {
       }));
 
       newImages.forEach(img => {
-        uploadFile(img.file, img.id);
+        handleImageUpload(img.file, img.id);
       });
 
       return [...prev, ...newImages];
@@ -204,7 +190,7 @@ export default function NewListing() {
 
     const imageUrls = images
       .filter(img => img.uploadedPath)
-      .map(img => `/api/storage${img.uploadedPath}`);
+      .map(img => img.uploadedPath as string);
 
     createMutation.mutate({
       data: {

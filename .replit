@@ -52,6 +52,9 @@ expertMode = true
   [userenv]
 
   [userenv.shared]
+PRIVATE_OBJECT_DIR = "/replit-objstore-e1fdea2f-86e4-46af-95e3-d55817b78e6a/private"
+PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-e1fdea2f-86e4-46af-95e3-d55817b78e6a/public"
+DEFAULT_OBJECT_STORAGE_BUCKET_ID = "replit-objstore-e1fdea2f-86e4-46af-95e3-d55817b78e6a"
 
 [nix]
 channel = "stable-25_05"

@@ -200,3 +200,21 @@ export const api = {
     return apiFetch<PeopleMatchResult[]>(`/matches/people${qs ? `?${qs}` : ""}`);
   },
 };
+
+export async function uploadFile(file: File): Promise<{ objectPath: string }> {
+  const token = localStorage.getItem("sakanmatch_token");
+  const formData = new FormData();
+  formData.append("file", file);
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_ORIGIN}${BASE}/api/storage/upload`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Upload failed" }));
+    throw new Error(err.error || "Upload failed");
+  }
+  return res.json() as Promise<{ objectPath: string }>;
+}
