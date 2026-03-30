@@ -400,6 +400,8 @@
     "expiredDesc": "Votre abonnement a expiré. Abonnez-vous à nouveau pour continuer à profiter des avantages premium.",
     "notStarted": "Abonnement non démarré",
     "notStartedDesc": "Vous avez annulé le processus PayPal. Aucun frais n'a été appliqué — vous pouvez vous abonner à tout moment.",
+    "activating": "Activation de votre abonnement Premium…",
+    "activatingDesc": "Veuillez patienter pendant que nous confirmons votre abonnement avec PayPal.",
     "welcomeToPremium": "Bienvenue dans Premium !",
     "welcomeDesc": "Votre abonnement est maintenant actif.",
     "almostThere": "Presque là !",

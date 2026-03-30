@@ -400,6 +400,8 @@
     "expiredDesc": "Your subscription has expired. Subscribe again to continue enjoying premium benefits.",
     "notStarted": "Subscription not started",
     "notStartedDesc": "You cancelled the PayPal flow. No charge was made — you can subscribe anytime.",
+    "activating": "Activating your Premium membership…",
+    "activatingDesc": "Please wait while we confirm your subscription with PayPal.",
     "welcomeToPremium": "Welcome to Premium!",
     "welcomeDesc": "Your subscription is now active.",
     "almostThere": "Almost there!",

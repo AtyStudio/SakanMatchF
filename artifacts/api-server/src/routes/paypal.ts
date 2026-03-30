@@ -39,9 +39,22 @@ function getPayPalWebhookId(): string {
   logger.info({ webhookUrl }, "PayPal webhook URL — register this in the PayPal sandbox dashboard");
 }
 
-function getAppBaseUrl(): string {
+function getAppBaseUrl(req?: AuthRequest): string {
   if (process.env.APP_BASE_URL) {
     return process.env.APP_BASE_URL.replace(/\/$/, "");
+  }
+
+  const origin = req?.get("origin") || req?.get("referer");
+  if (origin) {
+    try {
+      return new URL(origin).origin;
+    } catch {
+    }
+  }
+
+  const replitDomains = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+  if (replitDomains) {
+    return `https://${replitDomains}`;
   }
   if (process.env.REPLIT_DEV_DOMAIN) {
     return `https://${process.env.REPLIT_DEV_DOMAIN}`;
@@ -178,6 +191,9 @@ router.post(
       const planId = await ensurePlanId(req.log);
       const accessToken = await getPayPalAccessToken();
 
+      const baseUrl = getAppBaseUrl(req);
+      req.log.info({ baseUrl }, "PayPal subscription return URL base");
+
       const subscriptionRes = await fetch(
         `${PAYPAL_BASE_URL}/v1/billing/subscriptions`,
         {
@@ -192,8 +208,8 @@ router.post(
             application_context: {
               brand_name: "SakanMatch",
               user_action: "SUBSCRIBE_NOW",
-              return_url: `${getAppBaseUrl()}/premium?subscribed=true`,
-              cancel_url: `${getAppBaseUrl()}/premium?cancelled=true`,
+              return_url: `${baseUrl}/premium?subscribed=true`,
+              cancel_url: `${baseUrl}/premium?cancelled=true`,
             },
           }),
         },
@@ -317,12 +333,17 @@ router.post("/activate-subscription", requireAuth, async (req: AuthRequest, res)
           ),
         );
 
+      req.log.info(
+        { userId: user.id, subscriptionID },
+        "Premium subscription activated successfully",
+      );
+
       res.json({ status: subData.status });
       return;
     }
 
     if (subData.status === "APPROVAL_PENDING") {
-      req.log.info({ userId: user.id, subscriptionID }, "Subscription approval still pending");
+      req.log.info({ userId: user.id, subscriptionID }, "Subscription approval still pending after redirect — will activate via webhook");
       res.json({
         status: "APPROVAL_PENDING",
         message: "Awaiting PayPal approval — your subscription will activate once PayPal confirms it.",

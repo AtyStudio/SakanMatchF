@@ -2,7 +2,7 @@ import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
 import { useLocation } from "wouter";
 import { useGetPremiumStatus, useCreateSubscription, useActivateSubscription, useCancelSubscription } from "@workspace/api-client-react";
-import { Crown, CheckCircle2, Star, ShieldCheck, Zap, AlertTriangle, XCircle, ImageIcon, Layers, BarChart2, X } from "lucide-react";
+import { Crown, CheckCircle2, Star, ShieldCheck, Zap, AlertTriangle, XCircle, ImageIcon, Layers, BarChart2, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -56,34 +56,51 @@ export default function Premium() {
   }, [wasCancelled]);
 
   useEffect(() => {
-    if (justSubscribed && subscriptionId) {
-      activateSubscriptionMutation.mutate(
-        { data: { subscriptionID: subscriptionId } },
-        {
-          onSuccess: (data) => {
-            if (data.status === "ACTIVE") {
-              toast({ title: t("premium.welcomeToPremium"), description: t("premium.welcomeDesc") });
-            } else if (data.status === "APPROVAL_PENDING") {
-              toast({ title: t("premium.almostThere"), description: data.message ?? t("premium.subscriptionConfirm") });
-            } else {
-              toast({ title: t("premium.subscriptionCreated"), description: t("premium.subscriptionConfirm") });
-            }
+    if (!justSubscribed) return;
+
+    if (!subscriptionId) {
+      toast({ title: t("premium.subscriptionCreated"), description: t("premium.subscriptionConfirm") });
+      queryClient.invalidateQueries({ queryKey: ["/api/premium/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+      return;
+    }
+
+    activateSubscriptionMutation.mutate(
+      { data: { subscriptionID: subscriptionId } },
+      {
+        onSuccess: (data) => {
+          if (typeof window !== "undefined") {
+            window.history.replaceState({}, "", window.location.pathname);
+          }
+
+          if (data.status === "ACTIVE") {
+            toast({ title: t("premium.welcomeToPremium"), description: t("premium.welcomeDesc") });
             queryClient.invalidateQueries({ queryKey: ["/api/premium/status"] });
             queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            if (typeof window !== "undefined") {
-              window.history.replaceState({}, "", window.location.pathname);
-            }
-          },
-          onError: () => {
+            setTimeout(() => setLocation("/dashboard"), 1500);
+          } else if (data.status === "APPROVAL_PENDING") {
+            toast({ title: t("premium.almostThere"), description: data.message ?? t("premium.subscriptionConfirm") });
+            queryClient.invalidateQueries({ queryKey: ["/api/premium/status"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+          } else {
             toast({ title: t("premium.subscriptionCreated"), description: t("premium.subscriptionConfirm") });
             queryClient.invalidateQueries({ queryKey: ["/api/premium/status"] });
-            if (typeof window !== "undefined") {
-              window.history.replaceState({}, "", window.location.pathname);
-            }
-          },
-        }
-      );
-    }
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+          }
+        },
+        onError: () => {
+          toast({ title: t("premium.subscriptionCreated"), description: t("premium.subscriptionConfirm") });
+          queryClient.invalidateQueries({ queryKey: ["/api/premium/status"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+          if (typeof window !== "undefined") {
+            window.history.replaceState({}, "", window.location.pathname);
+          }
+        },
+      }
+    );
   }, [justSubscribed, subscriptionId]);
 
   if (!isAuthLoading && !user) {
@@ -112,6 +129,23 @@ export default function Premium() {
         <Navbar />
         <div className="flex-grow flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (justSubscribed && activateSubscriptionMutation.isPending) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+              <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">{t("premium.activating")}</h2>
+            <p className="text-muted-foreground">{t("premium.activatingDesc")}</p>
+          </div>
         </div>
       </div>
     );
