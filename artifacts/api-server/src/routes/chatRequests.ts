@@ -6,6 +6,8 @@ import { requireAuth, type AuthRequest } from "../middlewares/auth";
 
 const router = Router();
 
+const PG_UNIQUE_VIOLATION = "23505";
+
 const createRequestSchema = z.object({
   receiverId: z.number().int().positive(),
 });
@@ -32,10 +34,8 @@ function serializeRequest(row: {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     senderName: row.senderName ?? null,
-    senderEmail: row.senderEmail ?? null,
     senderAvatar: row.senderAvatar ?? null,
     receiverName: row.receiverName ?? null,
-    receiverEmail: row.receiverEmail ?? null,
     receiverAvatar: row.receiverAvatar ?? null,
   };
 }
@@ -49,11 +49,7 @@ async function enrichRequest(req: {
   updatedAt: Date;
 }) {
   const [sender] = await db
-    .select({
-      id: usersTable.id,
-      name: usersTable.name,
-      email: usersTable.email,
-    })
+    .select({ name: usersTable.name })
     .from(usersTable)
     .where(eq(usersTable.id, req.senderId))
     .limit(1);
@@ -65,11 +61,7 @@ async function enrichRequest(req: {
     .limit(1);
 
   const [receiver] = await db
-    .select({
-      id: usersTable.id,
-      name: usersTable.name,
-      email: usersTable.email,
-    })
+    .select({ name: usersTable.name })
     .from(usersTable)
     .where(eq(usersTable.id, req.receiverId))
     .limit(1);
@@ -83,14 +75,20 @@ async function enrichRequest(req: {
   return {
     ...req,
     senderName: sender?.name ?? null,
-    senderEmail: sender?.email ?? null,
+    senderEmail: null,
     senderAvatar: senderProfile?.avatarUrl ?? null,
     receiverName: receiver?.name ?? null,
-    receiverEmail: receiver?.email ?? null,
+    receiverEmail: null,
     receiverAvatar: receiverProfile?.avatarUrl ?? null,
   };
 }
 
+/**
+ * POST /chat-requests
+ * Send a new chat request. If a relationship row already exists (pending or accepted),
+ * return it with an appropriate status code rather than inserting a duplicate.
+ * The DB unique index on (sender_id, receiver_id) provides concurrency safety.
+ */
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   const result = createRequestSchema.safeParse(req.body);
   if (!result.success) {
@@ -125,9 +123,15 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       .limit(1);
 
     if (existing) {
-      const enriched = await enrichRequest(existing);
-      res.status(200).json(serializeRequest(enriched));
-      return;
+      if (existing.status === "accepted") {
+        res.status(409).json({ error: "Already connected", status: "accepted" });
+        return;
+      }
+      if (existing.status === "pending") {
+        const enriched = await enrichRequest(existing);
+        res.status(200).json(serializeRequest(enriched));
+        return;
+      }
     }
 
     const [created] = await db
@@ -137,7 +141,12 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
 
     const enriched = await enrichRequest(created);
     res.status(201).json(serializeRequest(enriched));
-  } catch (err) {
+  } catch (err: unknown) {
+    const pgErr = err as { code?: string };
+    if (pgErr?.code === PG_UNIQUE_VIOLATION) {
+      res.status(409).json({ error: "A chat request already exists between these users" });
+      return;
+    }
     req.log.error({ err }, "Create chat request error");
     res.status(500).json({ error: "Internal server error" });
   }
@@ -149,7 +158,12 @@ router.get("/incoming", requireAuth, async (req: AuthRequest, res) => {
     const rows = await db
       .select()
       .from(chatRequestsTable)
-      .where(eq(chatRequestsTable.receiverId, userId));
+      .where(
+        and(
+          eq(chatRequestsTable.receiverId, userId),
+          eq(chatRequestsTable.status, "pending")
+        )
+      );
 
     const enriched = await Promise.all(rows.map(enrichRequest));
     res.json(enriched.map(serializeRequest));
@@ -165,7 +179,12 @@ router.get("/outgoing", requireAuth, async (req: AuthRequest, res) => {
     const rows = await db
       .select()
       .from(chatRequestsTable)
-      .where(eq(chatRequestsTable.senderId, userId));
+      .where(
+        and(
+          eq(chatRequestsTable.senderId, userId),
+          eq(chatRequestsTable.status, "pending")
+        )
+      );
 
     const enriched = await Promise.all(rows.map(enrichRequest));
     res.json(enriched.map(serializeRequest));
@@ -259,6 +278,10 @@ router.patch("/:id/accept", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+/**
+ * PATCH /chat-requests/:id/decline
+ * Hard-deletes the row after declining so the sender can re-request in the future.
+ */
 router.patch("/:id/decline", requireAuth, async (req: AuthRequest, res) => {
   const id = parseInt(req.params.id);
   const userId = req.user!.id;
@@ -290,20 +313,18 @@ router.patch("/:id/decline", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const [updated] = await db
-      .update(chatRequestsTable)
-      .set({ status: "declined", updatedAt: new Date() })
-      .where(eq(chatRequestsTable.id, id))
-      .returning();
-
-    const enriched = await enrichRequest(updated);
-    res.json(serializeRequest(enriched));
+    await db.delete(chatRequestsTable).where(eq(chatRequestsTable.id, id));
+    res.status(204).end();
   } catch (err) {
     req.log.error({ err }, "Decline chat request error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
+/**
+ * PATCH /chat-requests/:id/cancel
+ * Hard-deletes the row after cancelling so the receiver can still be re-requested.
+ */
 router.patch("/:id/cancel", requireAuth, async (req: AuthRequest, res) => {
   const id = parseInt(req.params.id);
   const userId = req.user!.id;
@@ -335,14 +356,8 @@ router.patch("/:id/cancel", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const [updated] = await db
-      .update(chatRequestsTable)
-      .set({ status: "cancelled", updatedAt: new Date() })
-      .where(eq(chatRequestsTable.id, id))
-      .returning();
-
-    const enriched = await enrichRequest(updated);
-    res.json(serializeRequest(enriched));
+    await db.delete(chatRequestsTable).where(eq(chatRequestsTable.id, id));
+    res.status(204).end();
   } catch (err) {
     req.log.error({ err }, "Cancel chat request error");
     res.status(500).json({ error: "Internal server error" });

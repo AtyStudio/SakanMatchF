@@ -174,10 +174,8 @@ export interface ChatRequest {
   createdAt: string;
   updatedAt: string;
   senderName: string | null;
-  senderEmail: string | null;
   senderAvatar: string | null;
   receiverName: string | null;
-  receiverEmail: string | null;
   receiverAvatar: string | null;
 }
 

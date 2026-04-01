@@ -254,10 +254,10 @@ export default function Messages() {
       await api.acceptChatRequest(req.id);
       setIncomingRequests(prev => prev.filter(r => r.id !== req.id));
       toast({ title: t("chatRequests.accepted"), description: t("chatRequests.acceptedDesc") });
-      const otherName = req.senderName || req.senderEmail?.split("@")[0] || "User";
+      const otherName = req.senderName || "User";
       const syntheticConv: Conversation = {
         otherId: req.senderId,
-        otherEmail: req.senderEmail,
+        otherEmail: null,
         otherName: req.senderName,
         lastMessage: "",
         lastMessageAt: new Date().toISOString(),
@@ -456,7 +456,7 @@ export default function Messages() {
                       ) : requestSubTab === "incoming" ? (
                         incomingRequests.length > 0 ? (
                           incomingRequests.map(req => {
-                            const name = req.senderName || req.senderEmail?.split("@")[0] || "User";
+                            const name = req.senderName || "User";
                             const isActing = requestActionId === req.id;
                             return (
                               <div key={req.id} className="p-4 border-b border-border/50">
@@ -507,7 +507,7 @@ export default function Messages() {
                       ) : (
                         outgoingRequests.length > 0 ? (
                           outgoingRequests.map(req => {
-                            const name = req.receiverName || req.receiverEmail?.split("@")[0] || "User";
+                            const name = req.receiverName || "User";
                             const isActing = requestActionId === req.id;
                             return (
                               <div key={req.id} className="p-4 border-b border-border/50">

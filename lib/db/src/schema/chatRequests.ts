@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
 export const chatRequestsTable = pgTable("chat_requests", {
@@ -14,6 +14,8 @@ export const chatRequestsTable = pgTable("chat_requests", {
     .default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("chat_requests_sender_receiver_unique").on(table.senderId, table.receiverId),
+]);
 
 export type ChatRequest = typeof chatRequestsTable.$inferSelect;
