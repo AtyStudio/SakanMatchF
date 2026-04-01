@@ -224,9 +224,9 @@ export const api = {
   acceptChatRequest: (id: number) =>
     apiFetch<ChatRequest>(`/chat-requests/${id}/accept`, { method: "PATCH" }),
   declineChatRequest: (id: number) =>
-    apiFetch<ChatRequest>(`/chat-requests/${id}/decline`, { method: "PATCH" }),
+    apiFetch<{ ok: boolean }>(`/chat-requests/${id}/decline`, { method: "PATCH" }),
   cancelChatRequest: (id: number) =>
-    apiFetch<ChatRequest>(`/chat-requests/${id}/cancel`, { method: "PATCH" }),
+    apiFetch<{ ok: boolean }>(`/chat-requests/${id}/cancel`, { method: "PATCH" }),
 };
 
 export async function uploadFile(file: File): Promise<{ objectPath: string }> {

@@ -115,8 +115,8 @@ function ChatRequestButton({
     if (!chatRequest) return;
     setIsActionLoading(true);
     try {
-      const updated = await api.declineChatRequest(chatRequest.id);
-      setChatRequest(updated);
+      await api.declineChatRequest(chatRequest.id);
+      setChatRequest(null);
     } catch {
       toast({ variant: "destructive", title: t("common.error"), description: t("chatRequests.declineError") });
     } finally {
@@ -128,8 +128,8 @@ function ChatRequestButton({
     if (!chatRequest) return;
     setIsActionLoading(true);
     try {
-      const updated = await api.cancelChatRequest(chatRequest.id);
-      setChatRequest(updated);
+      await api.cancelChatRequest(chatRequest.id);
+      setChatRequest(null);
     } catch {
       toast({ variant: "destructive", title: t("common.error"), description: t("chatRequests.cancelError") });
     } finally {

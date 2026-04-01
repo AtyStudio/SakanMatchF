@@ -1,4 +1,5 @@
 import { pgTable, serial, integer, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable } from "./users";
 
 export const chatRequestsTable = pgTable("chat_requests", {
@@ -15,7 +16,10 @@ export const chatRequestsTable = pgTable("chat_requests", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex("chat_requests_sender_receiver_unique").on(table.senderId, table.receiverId),
+  uniqueIndex("chat_requests_pair_unique").on(
+    sql`LEAST(${table.senderId}, ${table.receiverId})`,
+    sql`GREATEST(${table.senderId}, ${table.receiverId})`
+  ),
 ]);
 
 export type ChatRequest = typeof chatRequestsTable.$inferSelect;

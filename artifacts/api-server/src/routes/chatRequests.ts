@@ -314,7 +314,7 @@ router.patch("/:id/decline", requireAuth, async (req: AuthRequest, res) => {
     }
 
     await db.delete(chatRequestsTable).where(eq(chatRequestsTable.id, id));
-    res.status(204).end();
+    res.json({ ok: true, deleted: true });
   } catch (err) {
     req.log.error({ err }, "Decline chat request error");
     res.status(500).json({ error: "Internal server error" });
@@ -357,7 +357,7 @@ router.patch("/:id/cancel", requireAuth, async (req: AuthRequest, res) => {
     }
 
     await db.delete(chatRequestsTable).where(eq(chatRequestsTable.id, id));
-    res.status(204).end();
+    res.json({ ok: true, deleted: true });
   } catch (err) {
     req.log.error({ err }, "Cancel chat request error");
     res.status(500).json({ error: "Internal server error" });
