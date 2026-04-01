@@ -1,0 +1,81 @@
+Create an automated screenshot generator for the SakanMatch website.
+
+GOAL:
+Capture high-quality screenshots of the real product from:
+https://sakanmatch.site/
+
+=====================================
+REQUIREMENTS
+=====================================
+Use a headless browser (Playwright or Puppeteer).
+
+Create a script that:
+- opens the website
+- waits for full page load
+- captures multiple key screens
+- saves images in a folder called /screenshots
+
+=====================================
+SCREENSHOTS TO CAPTURE
+=====================================
+
+1. Home Page
+- full page screenshot
+- file: home.png
+
+2. Listings Page (grid of rooms)
+- scroll if needed
+- file: listings.png
+
+3. Listing Details Page
+- open one listing
+- capture page
+- file: listing-details.png
+
+4. Login or Signup Page
+- file: auth.png
+
+5. Dashboard (if accessible)
+- simulate login if needed (use test account if available)
+- file: dashboard.png
+
+6. Messaging / Chat UI (if exists)
+- file: messaging.png
+
+7. Premium / Owner Section (if exists)
+- file: premium.png
+
+=====================================
+QUALITY SETTINGS
+=====================================
+- viewport: 1440x900 (desktop)
+- also capture a mobile version (375x812) for:
+  - home-mobile.png
+  - listings-mobile.png
+
+- use:
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(2000)
+
+=====================================
+OUTPUT
+=====================================
+- save all images in /public/screenshots/
+- use clean file names
+- optimize for presentation (clear, centered, no loading states)
+
+=====================================
+EXTRA
+=====================================
+- hide cookie popups or overlays if they exist
+- scroll slightly before screenshot to show content
+- make sure UI is visible and not blank
+
+=====================================
+DONE WHEN
+=====================================
+- all screenshots are generated successfully
+- images are clear and usable in presentation slides
+- no broken or empty pages
+
+Write the full script and instructions to run it.
