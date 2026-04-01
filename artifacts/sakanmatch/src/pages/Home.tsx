@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { ListingCard } from "@/components/ListingCard";
 import { Navbar } from "@/components/Navbar";
-import { Search, Loader2, Home as HomeIcon, Users, Star, MapPin, ArrowRight, Shield, Zap, Heart } from "lucide-react";
+import { Search, Loader2, Home as HomeIcon, Users, Star, MapPin, ArrowRight, Shield, Zap, Heart, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -314,27 +314,79 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Contact Section */}
+        <section className="py-16 bg-card border-t border-border">
+          <div className="max-w-3xl mx-auto px-4 text-center">
+            <h2 className="text-2xl font-display font-bold text-foreground mb-2">{t("home.contactUs")}</h2>
+            <p className="text-muted-foreground mb-10">{t("home.contactSubtitle")}</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a
+                href="https://www.instagram.com/sakanmatch.ma/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl border-2 border-border bg-background hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
+              >
+                <InstagramIcon className="w-5 h-5 text-[#E1306C] group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold text-foreground">@sakanmatch.ma</span>
+              </a>
+              <a
+                href="mailto:contact@sakanmatch.site"
+                className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl border-2 border-border bg-background hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
+              >
+                <Mail className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold text-foreground">contact@sakanmatch.site</span>
+              </a>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
-      <footer className="bg-card border-t border-border py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-              <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-full h-full object-cover" />
+      <footer className="bg-background border-t border-border py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Brand */}
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+                <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-full h-full object-cover" />
+              </div>
+              <span className="font-display font-bold text-foreground">Sakan<span className="text-primary">Match</span></span>
             </div>
-            <span className="font-display font-bold text-foreground">Sakan<span className="text-primary">Match</span></span>
-          </div>
-          <p className="text-sm text-muted-foreground">{t("home.footer")}</p>
-          <div className="flex gap-5 text-sm text-muted-foreground">
-            {user ? (
-              <Link href="/dashboard" className="hover:text-primary transition-colors">{t("nav.dashboard")}</Link>
-            ) : (
-              <>
-                <Link href="/login" className="hover:text-primary transition-colors">{t("nav.login")}</Link>
-                <Link href="/signup" className="hover:text-primary transition-colors">{t("nav.signup")}</Link>
-              </>
-            )}
+
+            {/* Copyright */}
+            <p className="text-sm text-muted-foreground order-last md:order-none">{t("home.footer")}</p>
+
+            {/* Links + Social */}
+            <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-muted-foreground">
+              {user ? (
+                <Link href="/dashboard" className="hover:text-primary transition-colors">{t("nav.dashboard")}</Link>
+              ) : (
+                <>
+                  <Link href="/login" className="hover:text-primary transition-colors">{t("nav.login")}</Link>
+                  <Link href="/signup" className="hover:text-primary transition-colors">{t("nav.signup")}</Link>
+                </>
+              )}
+              <span className="text-border">|</span>
+              <a
+                href="https://www.instagram.com/sakanmatch.ma/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[#E1306C] transition-colors flex items-center gap-1.5"
+                aria-label="Instagram"
+              >
+                <InstagramIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">Instagram</span>
+              </a>
+              <a
+                href="mailto:contact@sakanmatch.site"
+                className="hover:text-primary transition-colors flex items-center gap-1.5"
+                aria-label="Email"
+              >
+                <Mail className="w-4 h-4" />
+                <span className="hidden sm:inline">contact@sakanmatch.site</span>
+              </a>
+            </div>
           </div>
         </div>
       </footer>
@@ -346,6 +398,16 @@ function MessageSquare({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
