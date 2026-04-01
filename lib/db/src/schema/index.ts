@@ -6,3 +6,4 @@ export * from "./favorites";
 export * from "./requests";
 export * from "./messages";
 export * from "./userProfiles";
+export * from "./chatRequests";

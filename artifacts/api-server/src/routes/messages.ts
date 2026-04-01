@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, messagesTable, usersTable } from "@workspace/db";
+import { db, messagesTable, usersTable, chatRequestsTable } from "@workspace/db";
 import { eq, and, or, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
@@ -150,17 +150,45 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   }
 
   const { receiverId, listingId, body } = result.data;
+  const senderId = req.user!.id;
 
-  if (receiverId === req.user!.id) {
+  if (receiverId === senderId) {
     res.status(400).json({ error: "Cannot message yourself" });
     return;
   }
 
   try {
+    if (!listingId) {
+      const [accepted] = await db
+        .select({ id: chatRequestsTable.id })
+        .from(chatRequestsTable)
+        .where(
+          and(
+            eq(chatRequestsTable.status, "accepted"),
+            or(
+              and(
+                eq(chatRequestsTable.senderId, senderId),
+                eq(chatRequestsTable.receiverId, receiverId)
+              ),
+              and(
+                eq(chatRequestsTable.senderId, receiverId),
+                eq(chatRequestsTable.receiverId, senderId)
+              )
+            )
+          )
+        )
+        .limit(1);
+
+      if (!accepted) {
+        res.status(403).json({ error: "Chat request required", message: "You need an accepted chat request to message this user" });
+        return;
+      }
+    }
+
     const [msg] = await db
       .insert(messagesTable)
       .values({
-        senderId: req.user!.id,
+        senderId,
         receiverId,
         listingId: listingId ?? null,
         body,

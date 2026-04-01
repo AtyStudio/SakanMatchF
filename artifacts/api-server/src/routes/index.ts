@@ -12,6 +12,7 @@ import messagesRouter from "./messages";
 import profilesRouter from "./profiles";
 import matchesRouter from "./matches";
 import donationsRouter from "./donations";
+import chatRequestsRouter from "./chatRequests";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use("/messages", messagesRouter);
 router.use("/profile", profilesRouter);
 router.use("/matches", matchesRouter);
 router.use("/donations", donationsRouter);
+router.use("/chat-requests", chatRequestsRouter);
 
 export default router;

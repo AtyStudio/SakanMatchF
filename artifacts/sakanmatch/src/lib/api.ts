@@ -166,6 +166,21 @@ export interface MessageItem {
   createdAt: string;
 }
 
+export interface ChatRequest {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  status: "pending" | "accepted" | "declined" | "cancelled";
+  createdAt: string;
+  updatedAt: string;
+  senderName: string | null;
+  senderEmail: string | null;
+  senderAvatar: string | null;
+  receiverName: string | null;
+  receiverEmail: string | null;
+  receiverAvatar: string | null;
+}
+
 export const api = {
   getPreferences: () => apiFetch<PreferencesResponse | null>("/preferences"),
   updatePreferences: (data: PreferencesPayload) =>
@@ -199,6 +214,21 @@ export const api = {
     const qs = params.toString();
     return apiFetch<PeopleMatchResult[]>(`/matches/people${qs ? `?${qs}` : ""}`);
   },
+
+  sendChatRequest: (receiverId: number) =>
+    apiFetch<ChatRequest>("/chat-requests", { method: "POST", body: JSON.stringify({ receiverId }) }),
+  getIncomingChatRequests: () =>
+    apiFetch<ChatRequest[]>("/chat-requests/incoming"),
+  getOutgoingChatRequests: () =>
+    apiFetch<ChatRequest[]>("/chat-requests/outgoing"),
+  getChatRequestBetween: (otherId: number) =>
+    apiFetch<ChatRequest | null>(`/chat-requests/between/${otherId}`),
+  acceptChatRequest: (id: number) =>
+    apiFetch<ChatRequest>(`/chat-requests/${id}/accept`, { method: "PATCH" }),
+  declineChatRequest: (id: number) =>
+    apiFetch<ChatRequest>(`/chat-requests/${id}/decline`, { method: "PATCH" }),
+  cancelChatRequest: (id: number) =>
+    apiFetch<ChatRequest>(`/chat-requests/${id}/cancel`, { method: "PATCH" }),
 };
 
 export async function uploadFile(file: File): Promise<{ objectPath: string }> {

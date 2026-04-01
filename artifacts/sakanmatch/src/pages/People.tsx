@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
 import { useLocation, Link } from "wouter";
-import { api, type PeopleMatchResult } from "@/lib/api";
-import { Loader2, Users, User, DollarSign, Filter, ArrowRight } from "lucide-react";
+import { api, type PeopleMatchResult, type ChatRequest } from "@/lib/api";
+import { Loader2, Users, User, DollarSign, Filter, ArrowRight, MessageCircle, UserPlus, Clock, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 
 const MOROCCAN_CITIES = ["Casablanca", "Rabat", "Marrakech", "Fes", "Tangier", "Agadir", "Meknes", "Oujda", "Kenitra", "Tetouan"];
 
@@ -57,7 +58,167 @@ function formatTrait(key: string, value: string): string {
   return map[key]?.[value] || value;
 }
 
-function MatchCard({ match }: { match: PeopleMatchResult }) {
+function ChatRequestButton({
+  match,
+  currentUserId,
+}: {
+  match: PeopleMatchResult;
+  currentUserId: number;
+}) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [chatRequest, setChatRequest] = useState<ChatRequest | null | undefined>(undefined);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  const fetchChatRequest = useCallback(async () => {
+    try {
+      const req = await api.getChatRequestBetween(match.userId);
+      setChatRequest(req);
+    } catch {
+      setChatRequest(null);
+    }
+  }, [match.userId]);
+
+  useEffect(() => {
+    fetchChatRequest();
+  }, [fetchChatRequest]);
+
+  const handleSendRequest = async () => {
+    setIsActionLoading(true);
+    try {
+      const req = await api.sendChatRequest(match.userId);
+      setChatRequest(req);
+      toast({ title: t("chatRequests.requestSentToast"), description: t("chatRequests.requestSentDesc") });
+    } catch {
+      toast({ variant: "destructive", title: t("common.error"), description: t("chatRequests.sendError") });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleAccept = async () => {
+    if (!chatRequest) return;
+    setIsActionLoading(true);
+    try {
+      const updated = await api.acceptChatRequest(chatRequest.id);
+      setChatRequest(updated);
+      toast({ title: t("chatRequests.accepted"), description: t("chatRequests.acceptedDesc") });
+    } catch {
+      toast({ variant: "destructive", title: t("common.error"), description: t("chatRequests.acceptError") });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!chatRequest) return;
+    setIsActionLoading(true);
+    try {
+      const updated = await api.declineChatRequest(chatRequest.id);
+      setChatRequest(updated);
+    } catch {
+      toast({ variant: "destructive", title: t("common.error"), description: t("chatRequests.declineError") });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!chatRequest) return;
+    setIsActionLoading(true);
+    try {
+      const updated = await api.cancelChatRequest(chatRequest.id);
+      setChatRequest(updated);
+    } catch {
+      toast({ variant: "destructive", title: t("common.error"), description: t("chatRequests.cancelError") });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  if (chatRequest === undefined) {
+    return (
+      <div className="mt-3 flex justify-center">
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (chatRequest?.status === "accepted") {
+    return (
+      <button
+        onClick={() => setLocation(`/messages/${match.userId}`)}
+        className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white font-semibold text-sm rounded-xl transition-all duration-200"
+      >
+        <MessageCircle className="w-4 h-4" />
+        {t("chatRequests.message")}
+      </button>
+    );
+  }
+
+  if (chatRequest?.status === "pending" && chatRequest.senderId === currentUserId) {
+    return (
+      <div className="mt-3 flex gap-2">
+        <div className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-yellow-500/10 text-yellow-600 font-semibold text-sm rounded-xl border border-yellow-200">
+          <Clock className="w-4 h-4" />
+          {t("chatRequests.requestSent")}
+        </div>
+        <button
+          onClick={handleCancel}
+          disabled={isActionLoading}
+          className="px-3 py-2.5 bg-secondary text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-sm transition-all duration-200 disabled:opacity-50"
+          title={t("chatRequests.cancel")}
+        >
+          {isActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+        </button>
+      </div>
+    );
+  }
+
+  if (chatRequest?.status === "pending" && chatRequest.receiverId === currentUserId) {
+    return (
+      <div className="mt-3 space-y-2">
+        <p className="text-xs text-center text-muted-foreground font-medium">{t("chatRequests.wantsToConnect")}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={handleAccept}
+            disabled={isActionLoading}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-sm rounded-xl transition-all duration-200 disabled:opacity-50"
+          >
+            {isActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            {t("chatRequests.accept")}
+          </button>
+          <button
+            onClick={handleDecline}
+            disabled={isActionLoading}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-secondary text-foreground hover:bg-destructive/10 hover:text-destructive font-semibold text-sm rounded-xl transition-all duration-200 disabled:opacity-50"
+          >
+            {isActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+            {t("chatRequests.decline")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleSendRequest}
+      disabled={isActionLoading}
+      className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-semibold text-sm rounded-xl transition-all duration-200 disabled:opacity-50"
+    >
+      {isActionLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <UserPlus className="w-4 h-4" />
+      )}
+      {t("chatRequests.sendRequest")}
+    </button>
+  );
+}
+
+function MatchCard({ match, currentUserId }: { match: PeopleMatchResult; currentUserId: number }) {
   const { t } = useTranslation();
   const displayName = match.profile.fullName || match.name || match.email.split("@")[0];
   const traits: string[] = [];
@@ -119,10 +280,12 @@ function MatchCard({ match }: { match: PeopleMatchResult }) {
 
       <Link
         href={`/profile/${match.userId}`}
-        className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-semibold text-sm rounded-xl transition-all duration-200"
+        className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-secondary text-foreground hover:bg-secondary/80 font-semibold text-sm rounded-xl transition-all duration-200"
       >
         {t("people.viewProfile")} <ArrowRight className="w-3.5 h-3.5" />
       </Link>
+
+      <ChatRequestButton match={match} currentUserId={currentUserId} />
     </div>
   );
 }
@@ -216,7 +379,9 @@ export default function People() {
               {t("people.showing")} <span className="font-semibold text-foreground">{matches.length}</span> {t("people.potentialRoommates")}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {matches.map(m => <MatchCard key={m.userId} match={m} />)}
+              {matches.map(m => (
+                <MatchCard key={m.userId} match={m} currentUserId={user!.id} />
+              ))}
             </div>
           </>
         ) : (
