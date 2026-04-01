@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, chatRequestsTable, usersTable, userProfilesTable } from "@workspace/db";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
 
@@ -12,7 +13,35 @@ const createRequestSchema = z.object({
   receiverId: z.number().int().positive(),
 });
 
-function serializeRequest(row: {
+const senderUser = alias(usersTable, "su");
+const receiverUser = alias(usersTable, "ru");
+const senderProfile = alias(userProfilesTable, "sp");
+const receiverProfile = alias(userProfilesTable, "rp");
+
+type RawRequest = typeof chatRequestsTable.$inferSelect;
+
+function buildEnrichedSelect() {
+  return db
+    .select({
+      id: chatRequestsTable.id,
+      senderId: chatRequestsTable.senderId,
+      receiverId: chatRequestsTable.receiverId,
+      status: chatRequestsTable.status,
+      createdAt: chatRequestsTable.createdAt,
+      updatedAt: chatRequestsTable.updatedAt,
+      senderName: senderUser.name,
+      senderAvatar: senderProfile.avatarUrl,
+      receiverName: receiverUser.name,
+      receiverAvatar: receiverProfile.avatarUrl,
+    })
+    .from(chatRequestsTable)
+    .leftJoin(senderUser, eq(senderUser.id, chatRequestsTable.senderId))
+    .leftJoin(senderProfile, eq(senderProfile.userId, chatRequestsTable.senderId))
+    .leftJoin(receiverUser, eq(receiverUser.id, chatRequestsTable.receiverId))
+    .leftJoin(receiverProfile, eq(receiverProfile.userId, chatRequestsTable.receiverId));
+}
+
+function serialize(row: {
   id: number;
   senderId: number;
   receiverId: number;
@@ -20,10 +49,8 @@ function serializeRequest(row: {
   createdAt: Date;
   updatedAt: Date;
   senderName?: string | null;
-  senderEmail?: string | null;
   senderAvatar?: string | null;
   receiverName?: string | null;
-  receiverEmail?: string | null;
   receiverAvatar?: string | null;
 }) {
   return {
@@ -40,54 +67,12 @@ function serializeRequest(row: {
   };
 }
 
-async function enrichRequest(req: {
-  id: number;
-  senderId: number;
-  receiverId: number;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-}) {
-  const [sender] = await db
-    .select({ name: usersTable.name })
-    .from(usersTable)
-    .where(eq(usersTable.id, req.senderId))
-    .limit(1);
-
-  const [senderProfile] = await db
-    .select({ avatarUrl: userProfilesTable.avatarUrl })
-    .from(userProfilesTable)
-    .where(eq(userProfilesTable.userId, req.senderId))
-    .limit(1);
-
-  const [receiver] = await db
-    .select({ name: usersTable.name })
-    .from(usersTable)
-    .where(eq(usersTable.id, req.receiverId))
-    .limit(1);
-
-  const [receiverProfile] = await db
-    .select({ avatarUrl: userProfilesTable.avatarUrl })
-    .from(userProfilesTable)
-    .where(eq(userProfilesTable.userId, req.receiverId))
-    .limit(1);
-
-  return {
-    ...req,
-    senderName: sender?.name ?? null,
-    senderEmail: null,
-    senderAvatar: senderProfile?.avatarUrl ?? null,
-    receiverName: receiver?.name ?? null,
-    receiverEmail: null,
-    receiverAvatar: receiverProfile?.avatarUrl ?? null,
-  };
-}
-
 /**
  * POST /chat-requests
  * Send a new chat request. If a relationship row already exists (pending or accepted),
- * return it with an appropriate status code rather than inserting a duplicate.
- * The DB unique index on (sender_id, receiver_id) provides concurrency safety.
+ * returns it with an appropriate status code. The DB unique expression index on
+ * (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id)) prevents
+ * concurrent duplicate inserts from either direction.
  */
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   const result = createRequestSchema.safeParse(req.body);
@@ -105,22 +90,18 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
-    const [existing] = await db
-      .select()
-      .from(chatRequestsTable)
-      .where(
-        or(
-          and(
-            eq(chatRequestsTable.senderId, senderId),
-            eq(chatRequestsTable.receiverId, receiverId)
-          ),
-          and(
-            eq(chatRequestsTable.senderId, receiverId),
-            eq(chatRequestsTable.receiverId, senderId)
-          )
+    const [existing] = await buildEnrichedSelect().where(
+      or(
+        and(
+          eq(chatRequestsTable.senderId, senderId),
+          eq(chatRequestsTable.receiverId, receiverId)
+        ),
+        and(
+          eq(chatRequestsTable.senderId, receiverId),
+          eq(chatRequestsTable.receiverId, senderId)
         )
       )
-      .limit(1);
+    ).limit(1);
 
     if (existing) {
       if (existing.status === "accepted") {
@@ -128,8 +109,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
         return;
       }
       if (existing.status === "pending") {
-        const enriched = await enrichRequest(existing);
-        res.status(200).json(serializeRequest(enriched));
+        res.status(200).json(serialize(existing));
         return;
       }
     }
@@ -139,8 +119,11 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       .values({ senderId, receiverId })
       .returning();
 
-    const enriched = await enrichRequest(created);
-    res.status(201).json(serializeRequest(enriched));
+    const [enriched] = await buildEnrichedSelect()
+      .where(eq(chatRequestsTable.id, created.id))
+      .limit(1);
+
+    res.status(201).json(serialize(enriched));
   } catch (err: unknown) {
     const pgErr = err as { code?: string };
     if (pgErr?.code === PG_UNIQUE_VIOLATION) {
@@ -155,18 +138,13 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
 router.get("/incoming", requireAuth, async (req: AuthRequest, res) => {
   const userId = req.user!.id;
   try {
-    const rows = await db
-      .select()
-      .from(chatRequestsTable)
-      .where(
-        and(
-          eq(chatRequestsTable.receiverId, userId),
-          eq(chatRequestsTable.status, "pending")
-        )
-      );
-
-    const enriched = await Promise.all(rows.map(enrichRequest));
-    res.json(enriched.map(serializeRequest));
+    const rows = await buildEnrichedSelect().where(
+      and(
+        eq(chatRequestsTable.receiverId, userId),
+        eq(chatRequestsTable.status, "pending")
+      )
+    );
+    res.json(rows.map(serialize));
   } catch (err) {
     req.log.error({ err }, "Get incoming chat requests error");
     res.status(500).json({ error: "Internal server error" });
@@ -176,18 +154,13 @@ router.get("/incoming", requireAuth, async (req: AuthRequest, res) => {
 router.get("/outgoing", requireAuth, async (req: AuthRequest, res) => {
   const userId = req.user!.id;
   try {
-    const rows = await db
-      .select()
-      .from(chatRequestsTable)
-      .where(
-        and(
-          eq(chatRequestsTable.senderId, userId),
-          eq(chatRequestsTable.status, "pending")
-        )
-      );
-
-    const enriched = await Promise.all(rows.map(enrichRequest));
-    res.json(enriched.map(serializeRequest));
+    const rows = await buildEnrichedSelect().where(
+      and(
+        eq(chatRequestsTable.senderId, userId),
+        eq(chatRequestsTable.status, "pending")
+      )
+    );
+    res.json(rows.map(serialize));
   } catch (err) {
     req.log.error({ err }, "Get outgoing chat requests error");
     res.status(500).json({ error: "Internal server error" });
@@ -203,30 +176,20 @@ router.get("/between/:otherId", requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
-    const [row] = await db
-      .select()
-      .from(chatRequestsTable)
-      .where(
-        or(
-          and(
-            eq(chatRequestsTable.senderId, userId),
-            eq(chatRequestsTable.receiverId, otherId)
-          ),
-          and(
-            eq(chatRequestsTable.senderId, otherId),
-            eq(chatRequestsTable.receiverId, userId)
-          )
+    const [row] = await buildEnrichedSelect().where(
+      or(
+        and(
+          eq(chatRequestsTable.senderId, userId),
+          eq(chatRequestsTable.receiverId, otherId)
+        ),
+        and(
+          eq(chatRequestsTable.senderId, otherId),
+          eq(chatRequestsTable.receiverId, userId)
         )
       )
-      .limit(1);
+    ).limit(1);
 
-    if (!row) {
-      res.json(null);
-      return;
-    }
-
-    const enriched = await enrichRequest(row);
-    res.json(serializeRequest(enriched));
+    res.json(row ? serialize(row) : null);
   } catch (err) {
     req.log.error({ err }, "Get chat request between users error");
     res.status(500).json({ error: "Internal server error" });
@@ -264,14 +227,16 @@ router.patch("/:id/accept", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const [updated] = await db
+    await db
       .update(chatRequestsTable)
       .set({ status: "accepted", updatedAt: new Date() })
-      .where(eq(chatRequestsTable.id, id))
-      .returning();
+      .where(eq(chatRequestsTable.id, id));
 
-    const enriched = await enrichRequest(updated);
-    res.json(serializeRequest(enriched));
+    const [enriched] = await buildEnrichedSelect()
+      .where(eq(chatRequestsTable.id, id))
+      .limit(1);
+
+    res.json(serialize(enriched));
   } catch (err) {
     req.log.error({ err }, "Accept chat request error");
     res.status(500).json({ error: "Internal server error" });
@@ -280,7 +245,8 @@ router.patch("/:id/accept", requireAuth, async (req: AuthRequest, res) => {
 
 /**
  * PATCH /chat-requests/:id/decline
- * Hard-deletes the row after declining so the sender can re-request in the future.
+ * Hard-deletes the pending row so the sender can re-request in the future.
+ * Returns JSON so apiFetch parses correctly.
  */
 router.patch("/:id/decline", requireAuth, async (req: AuthRequest, res) => {
   const id = parseInt(req.params.id);
@@ -323,7 +289,8 @@ router.patch("/:id/decline", requireAuth, async (req: AuthRequest, res) => {
 
 /**
  * PATCH /chat-requests/:id/cancel
- * Hard-deletes the row after cancelling so the receiver can still be re-requested.
+ * Hard-deletes the pending row so the receiver can still be re-requested.
+ * Returns JSON so apiFetch parses correctly.
  */
 router.patch("/:id/cancel", requireAuth, async (req: AuthRequest, res) => {
   const id = parseInt(req.params.id);
