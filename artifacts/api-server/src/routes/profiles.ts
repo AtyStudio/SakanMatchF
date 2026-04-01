@@ -18,7 +18,7 @@ const profileSchema = z.object({
   petPreference: z.enum(["love_pets", "no_pets", "no_preference"]).optional().nullable(),
   bio: z.string().max(500).optional().nullable(),
   moveInDate: z.string().optional().nullable(),
-  avatarUrl: z.string().url().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
 });
 
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
