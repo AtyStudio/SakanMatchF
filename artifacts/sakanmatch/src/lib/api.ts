@@ -240,7 +240,7 @@ export const api = {
   },
 
   reportListing: (listingId: number, reason: string) =>
-    apiFetch<{ ok: boolean }>(`/listings/${listingId}/report`, { method: "POST", body: JSON.stringify({ reason }) }),
+    apiFetch<{ success: boolean }>(`/listings/${listingId}/report`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
 
 export async function uploadFile(file: File): Promise<{ objectPath: string }> {

@@ -233,7 +233,7 @@ export default function Preferences() {
                     )}
                   >
                     {AMENITY_ICONS[key]}
-                    {t(`newListing.amenity_${key}`)}
+                    {t(`listings.${key}`)}
                   </button>
                 ))}
               </div>
