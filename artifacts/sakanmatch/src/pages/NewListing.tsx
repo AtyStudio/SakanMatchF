@@ -5,9 +5,14 @@ import { useLocation } from "wouter";
 import { useCreateListing } from "@workspace/api-client-react";
 import { uploadFile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Image as ImageIcon, X, Upload, Crown, Star, BarChart2, Layers } from "lucide-react";
+import {
+  Loader2, ArrowLeft, Image as ImageIcon, X, Upload, Crown, Star, BarChart2, Layers,
+  ChevronDown, ChevronUp, Home, DollarSign, Shield, Users, Wifi, UtensilsCrossed,
+  WashingMachine, ParkingSquare, AirVent, Flame,
+} from "lucide-react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 interface PreviewImage {
   id: string;
@@ -66,6 +71,44 @@ function UpgradeModal({ reason, onClose }: { reason: string; onClose: () => void
   );
 }
 
+function SectionHeader({
+  icon, title, badge, open, onToggle,
+}: {
+  icon: React.ReactNode; title: string; badge: string; open: boolean; onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between p-4 bg-secondary/40 hover:bg-secondary/70 rounded-xl transition-colors group"
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-primary">{icon}</span>
+        <span className="font-semibold text-foreground text-sm">{title}</span>
+        <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{badge}</span>
+      </div>
+      {open ? (
+        <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      ) : (
+        <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      )}
+    </button>
+  );
+}
+
+const AMENITY_KEYS = ["wifi", "kitchen", "washingMachine", "parking", "ac", "heating"] as const;
+const AMENITY_ICONS: Record<string, React.ReactNode> = {
+  wifi: <Wifi className="w-4 h-4" />,
+  kitchen: <UtensilsCrossed className="w-4 h-4" />,
+  washingMachine: <WashingMachine className="w-4 h-4" />,
+  parking: <ParkingSquare className="w-4 h-4" />,
+  ac: <AirVent className="w-4 h-4" />,
+  heating: <Flame className="w-4 h-4" />,
+};
+
+const inputClass = "w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200";
+const selectClass = "w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 cursor-pointer";
+
 export default function NewListing() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -82,6 +125,44 @@ export default function NewListing() {
   const [upgradeReason, setUpgradeReason] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
+
+  const [extras, setExtras] = useState({
+    propertyType: "" as "" | "room" | "studio" | "apartment" | "villa",
+    bedrooms: "",
+    bathrooms: "",
+    area: "",
+    floor: "",
+    isFurnished: false,
+    neighborhood: "",
+    amenities: [] as string[],
+    deposit: "",
+    billsIncluded: false,
+    agencyFees: "",
+    availableFrom: "",
+    smokingAllowed: false,
+    petsAllowed: false,
+    guestsAllowed: false,
+    genderPreference: "" as "" | "any" | "male" | "female",
+    quietHours: "",
+    minStay: "",
+    maxStay: "",
+    roommateNote: "",
+  });
+
+  const setField = (field: keyof typeof extras, value: unknown) =>
+    setExtras(prev => ({ ...prev, [field]: value }));
+
+  const toggleAmenity = (key: string) => {
+    setExtras(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(key)
+        ? prev.amenities.filter(a => a !== key)
+        : [...prev.amenities, key],
+    }));
+  };
+
   const isPremium = user?.isPremium && user?.subscriptionStatus === "active";
   const imageLimit = isPremium ? 10 : 4;
 
@@ -91,13 +172,14 @@ export default function NewListing() {
         toast({ title: t("listings.success"), description: t("listings.listingPublished") });
         setLocation("/dashboard");
       },
-      onError: (err: any) => {
-        const code = err?.response?.data?.code;
+      onError: (err: unknown) => {
+        const e = err as { response?: { data?: { code?: string; message?: string } } };
+        const code = e?.response?.data?.code;
         if (code === "upgrade_required") {
-          setUpgradeReason(err?.response?.data?.message || t("listings.freePhotoLimit", { limit: imageLimit }));
+          setUpgradeReason(e?.response?.data?.message || t("listings.freePhotoLimit", { limit: imageLimit }));
           setShowUpgradeModal(true);
         } else {
-          toast({ variant: "destructive", title: t("common.error"), description: err?.response?.data?.message || err.message || t("common.error") });
+          toast({ variant: "destructive", title: t("common.error"), description: e?.response?.data?.message || (err instanceof Error ? err.message : t("common.error")) });
         }
       }
     }
@@ -142,16 +224,10 @@ export default function NewListing() {
       }
 
       const newImages: PreviewImage[] = allowed.map(file => ({
-        id: genId(),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        uploading: false,
+        id: genId(), file, previewUrl: URL.createObjectURL(file), uploading: false,
       }));
 
-      newImages.forEach(img => {
-        handleImageUpload(img.file, img.id);
-      });
-
+      newImages.forEach(img => handleImageUpload(img.file, img.id));
       return [...prev, ...newImages];
     });
   }, [imageLimit, isPremium]);
@@ -173,8 +249,7 @@ export default function NewListing() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const stillUploading = images.some(img => img.uploading);
-    if (stillUploading) {
+    if (images.some(img => img.uploading)) {
       toast({ variant: "destructive", title: t("listings.pleaseWait"), description: t("listings.imagesUploading") });
       return;
     }
@@ -182,15 +257,11 @@ export default function NewListing() {
     if (images.length > imageLimit) {
       setUpgradeReason(t("listings.freePhotoLimit", { limit: imageLimit }));
       setShowUpgradeModal(!isPremium);
-      if (isPremium) {
-        toast({ variant: "destructive", title: t("listings.tooManyImages"), description: t("listings.tooManyImages") });
-      }
+      if (isPremium) toast({ variant: "destructive", title: t("listings.tooManyImages"), description: t("listings.tooManyImages") });
       return;
     }
 
-    const imageUrls = images
-      .filter(img => img.uploadedPath)
-      .map(img => img.uploadedPath as string);
+    const imageUrls = images.filter(img => img.uploadedPath).map(img => img.uploadedPath as string);
 
     createMutation.mutate({
       data: {
@@ -198,7 +269,27 @@ export default function NewListing() {
         description: description || undefined,
         price: parseFloat(price),
         city,
-        images: imageUrls
+        images: imageUrls,
+        propertyType: extras.propertyType || undefined,
+        bedrooms: extras.bedrooms ? parseInt(extras.bedrooms) : undefined,
+        bathrooms: extras.bathrooms ? parseInt(extras.bathrooms) : undefined,
+        area: extras.area ? parseFloat(extras.area) : undefined,
+        floor: extras.floor ? parseInt(extras.floor) : undefined,
+        isFurnished: extras.isFurnished || undefined,
+        neighborhood: extras.neighborhood || undefined,
+        amenities: extras.amenities.length > 0 ? extras.amenities : undefined,
+        deposit: extras.deposit ? parseFloat(extras.deposit) : undefined,
+        billsIncluded: extras.billsIncluded || undefined,
+        agencyFees: extras.agencyFees ? parseFloat(extras.agencyFees) : undefined,
+        availableFrom: extras.availableFrom || undefined,
+        smokingAllowed: extras.smokingAllowed || undefined,
+        petsAllowed: extras.petsAllowed || undefined,
+        guestsAllowed: extras.guestsAllowed || undefined,
+        genderPreference: extras.genderPreference || undefined,
+        quietHours: extras.quietHours || undefined,
+        minStay: extras.minStay ? parseInt(extras.minStay) : undefined,
+        maxStay: extras.maxStay ? parseInt(extras.maxStay) : undefined,
+        roommateNote: extras.roommateNote || undefined,
       }
     });
   };
@@ -207,9 +298,7 @@ export default function NewListing() {
   const anyUploading = images.some(img => img.uploading);
   const atImageLimit = images.length >= imageLimit;
 
-  if (isAuthLoading || !user || user.role !== "owner") {
-    return null;
-  }
+  if (isAuthLoading || !user || user.role !== "owner") return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -231,63 +320,42 @@ export default function NewListing() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Required: Title */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">{t("listings.listingTitle")}</label>
-              <input
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("listings.listingTitlePh")}
-                className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-              />
+              <input type="text" required value={title} onChange={e => setTitle(e.target.value)}
+                placeholder={t("listings.listingTitlePh")} className={inputClass} />
             </div>
 
+            {/* Required: City + Price */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">{t("listings.city")}</label>
-                <input
-                  type="text"
-                  required
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder={t("listings.cityPh")}
-                  className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                />
+                <input type="text" required value={city} onChange={e => setCity(e.target.value)}
+                  placeholder={t("listings.cityPh")} className={inputClass} />
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">{t("listings.monthlyRent")}</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="100"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder={t("listings.pricePh")}
-                  className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                />
+                <input type="number" required min="0" step="100" value={price} onChange={e => setPrice(e.target.value)}
+                  placeholder={t("listings.pricePh")} className={inputClass} />
               </div>
             </div>
 
+            {/* Required: Description */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">{t("listings.description")}</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("listings.descriptionPh")}
-                rows={4}
-                className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 resize-none"
-              />
+              <textarea value={description} onChange={e => setDescription(e.target.value)}
+                placeholder={t("listings.descriptionPh")} rows={4}
+                className={`${inputClass} resize-none`} />
             </div>
 
+            {/* Photos */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-semibold text-foreground flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-primary" /> {t("listings.photos")}
                 </label>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${atImageLimit ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-secondary text-muted-foreground"}`}>
+                <span className={cn("text-xs font-medium px-2 py-0.5 rounded-md", atImageLimit ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-secondary text-muted-foreground")}>
                   {images.length}/{imageLimit}
                   {!isPremium && <span className="ml-1 text-muted-foreground">({t("listings.freeLimit")})</span>}
                 </span>
@@ -295,24 +363,16 @@ export default function NewListing() {
 
               {!atImageLimit ? (
                 <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
-                    isDragging
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50 hover:bg-primary/3"
-                  }`}
+                  className={cn("relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200",
+                    isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-primary/3"
+                  )}
                 >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => e.target.files && addFiles(e.target.files)}
-                  />
+                  <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+                    onChange={e => e.target.files && addFiles(e.target.files)} />
                   <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
                   <p className="text-sm font-medium text-foreground">{t("listings.clickToBrowse")}</p>
                   <p className="text-xs text-muted-foreground mt-1">{t("listings.supportedFormats")}</p>
@@ -323,14 +383,8 @@ export default function NewListing() {
                     <Crown className="w-6 h-6 text-amber-500 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-foreground mb-1">{t("listings.photoLimitReached")}</p>
                     <p className="text-xs text-muted-foreground mb-3">{t("listings.freePhotoLimit", { limit: imageLimit })}</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUpgradeReason(t("listings.freePhotoLimit", { limit: imageLimit }));
-                        setShowUpgradeModal(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 transition-all"
-                    >
+                    <button type="button" onClick={() => { setUpgradeReason(t("listings.freePhotoLimit", { limit: imageLimit })); setShowUpgradeModal(true); }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 transition-all">
                       <Crown className="w-3.5 h-3.5" /> {t("listings.upgradeToPremium")}
                     </button>
                   </div>
@@ -339,7 +393,7 @@ export default function NewListing() {
 
               {images.length > 0 && (
                 <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {images.map((img) => (
+                  {images.map(img => (
                     <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border-2 border-border group">
                       <img src={img.previewUrl} alt="" className="w-full h-full object-cover" />
                       {img.uploading && (
@@ -353,11 +407,8 @@ export default function NewListing() {
                         </div>
                       )}
                       {!img.uploading && (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); removeImage(img.id); }}
-                          className="absolute top-1 right-1 bg-background/90 backdrop-blur-sm text-foreground p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground shadow-sm"
-                        >
+                        <button type="button" onClick={e => { e.stopPropagation(); removeImage(img.id); }}
+                          className="absolute top-1 right-1 bg-background/90 backdrop-blur-sm text-foreground p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground shadow-sm">
                           <X className="w-3 h-3" />
                         </button>
                       )}
@@ -367,6 +418,204 @@ export default function NewListing() {
               )}
             </div>
 
+            {/* Optional: Property Details */}
+            <div className="space-y-3">
+              <SectionHeader
+                icon={<Home className="w-4 h-4" />}
+                title={t("listings.propertyDetailsSection")}
+                badge={t("listings.optionalSection")}
+                open={!!openSections.propertyDetails}
+                onToggle={() => toggleSection("propertyDetails")}
+              />
+              {openSections.propertyDetails && (
+                <div className="pl-4 space-y-4 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.propertyType")}</label>
+                      <select value={extras.propertyType} onChange={e => setField("propertyType", e.target.value)} className={selectClass}>
+                        <option value="">{t("listings.propertyTypePh")}</option>
+                        <option value="room">{t("listings.room")}</option>
+                        <option value="studio">{t("listings.studio")}</option>
+                        <option value="apartment">{t("listings.apartment")}</option>
+                        <option value="villa">{t("listings.villa")}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.neighborhood")}</label>
+                      <input type="text" value={extras.neighborhood} onChange={e => setField("neighborhood", e.target.value)}
+                        placeholder={t("listings.neighborhoodPh")} className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.bedrooms")}</label>
+                      <input type="number" min="0" value={extras.bedrooms} onChange={e => setField("bedrooms", e.target.value)}
+                        placeholder="0" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.bathrooms")}</label>
+                      <input type="number" min="0" value={extras.bathrooms} onChange={e => setField("bathrooms", e.target.value)}
+                        placeholder="1" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.area")}</label>
+                      <input type="number" min="0" value={extras.area} onChange={e => setField("area", e.target.value)}
+                        placeholder={t("listings.areaPh")} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.floor")}</label>
+                      <input type="number" value={extras.floor} onChange={e => setField("floor", e.target.value)}
+                        placeholder={t("listings.floorPh")} className={inputClass} />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" checked={extras.isFurnished} onChange={e => setField("isFurnished", e.target.checked)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                    <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{t("listings.isFurnished")}</span>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Optional: Amenities */}
+            <div className="space-y-3">
+              <SectionHeader
+                icon={<Wifi className="w-4 h-4" />}
+                title={t("listings.amenitiesTitle")}
+                badge={t("listings.optionalSection")}
+                open={!!openSections.amenities}
+                onToggle={() => toggleSection("amenities")}
+              />
+              {openSections.amenities && (
+                <div className="pl-4 pt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {AMENITY_KEYS.map(key => (
+                    <label key={key} className={cn(
+                      "flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition-all duration-150",
+                      extras.amenities.includes(key)
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
+                    )}>
+                      <input type="checkbox" checked={extras.amenities.includes(key)} onChange={() => toggleAmenity(key)} className="sr-only" />
+                      {AMENITY_ICONS[key]}
+                      <span className="text-sm font-medium">{t(`listings.${key}`)}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Optional: Financial */}
+            <div className="space-y-3">
+              <SectionHeader
+                icon={<DollarSign className="w-4 h-4" />}
+                title={t("listings.financialSection")}
+                badge={t("listings.optionalSection")}
+                open={!!openSections.financial}
+                onToggle={() => toggleSection("financial")}
+              />
+              {openSections.financial && (
+                <div className="pl-4 space-y-4 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.deposit")}</label>
+                      <input type="number" min="0" value={extras.deposit} onChange={e => setField("deposit", e.target.value)}
+                        placeholder={t("listings.depositPh")} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.agencyFees")}</label>
+                      <input type="number" min="0" value={extras.agencyFees} onChange={e => setField("agencyFees", e.target.value)}
+                        placeholder={t("listings.agencyFeesPh")} className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.availableFrom")}</label>
+                      <input type="date" value={extras.availableFrom} onChange={e => setField("availableFrom", e.target.value)}
+                        className={inputClass} />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-3 cursor-pointer group pb-3">
+                        <input type="checkbox" checked={extras.billsIncluded} onChange={e => setField("billsIncluded", e.target.checked)}
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{t("listings.billsIncluded")}</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Optional: House Rules */}
+            <div className="space-y-3">
+              <SectionHeader
+                icon={<Shield className="w-4 h-4" />}
+                title={t("listings.houseRulesSection")}
+                badge={t("listings.optionalSection")}
+                open={!!openSections.houseRules}
+                onToggle={() => toggleSection("houseRules")}
+              />
+              {openSections.houseRules && (
+                <div className="pl-4 space-y-4 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.genderPreference")}</label>
+                      <select value={extras.genderPreference} onChange={e => setField("genderPreference", e.target.value)} className={selectClass}>
+                        <option value="">{t("listings.propertyTypePh")}</option>
+                        <option value="any">{t("listings.any")}</option>
+                        <option value="male">{t("listings.maleOnly")}</option>
+                        <option value="female">{t("listings.femaleOnly")}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.quietHours")}</label>
+                      <input type="text" value={extras.quietHours} onChange={e => setField("quietHours", e.target.value)}
+                        placeholder={t("listings.quietHoursPh")} className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.minStay")}</label>
+                      <input type="number" min="1" value={extras.minStay} onChange={e => setField("minStay", e.target.value)}
+                        placeholder={t("listings.stayPh")} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.maxStay")}</label>
+                      <input type="number" min="1" value={extras.maxStay} onChange={e => setField("maxStay", e.target.value)}
+                        placeholder={t("listings.stayPh")} className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-6 gap-y-3">
+                    {(["smokingAllowed", "petsAllowed", "guestsAllowed"] as const).map(key => (
+                      <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={extras[key]} onChange={e => setField(key, e.target.checked)}
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{t(`listings.${key}`)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Optional: Roommate Preferences */}
+            <div className="space-y-3">
+              <SectionHeader
+                icon={<Users className="w-4 h-4" />}
+                title={t("listings.roommateSection")}
+                badge={t("listings.optionalSection")}
+                open={!!openSections.roommate}
+                onToggle={() => toggleSection("roommate")}
+              />
+              {openSections.roommate && (
+                <div className="pl-4 pt-2">
+                  <textarea value={extras.roommateNote} onChange={e => setField("roommateNote", e.target.value)}
+                    placeholder={t("listings.roommateNotePh")} rows={3}
+                    className={`${inputClass} resize-none`} />
+                </div>
+              )}
+            </div>
+
+            {/* Submit */}
             <div className="pt-4 border-t border-border">
               <button
                 type="submit"

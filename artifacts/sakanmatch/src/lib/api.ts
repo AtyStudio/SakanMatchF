@@ -227,6 +227,18 @@ export const api = {
     apiFetch<{ ok: boolean }>(`/chat-requests/${id}/decline`, { method: "PATCH" }),
   cancelChatRequest: (id: number) =>
     apiFetch<{ ok: boolean }>(`/chat-requests/${id}/cancel`, { method: "PATCH" }),
+
+  getListings: (params?: { city?: string; minPrice?: number; maxPrice?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.city) qs.set("city", params.city);
+    if (params?.minPrice !== undefined) qs.set("minPrice", String(params.minPrice));
+    if (params?.maxPrice !== undefined) qs.set("maxPrice", String(params.maxPrice));
+    const q = qs.toString();
+    return apiFetch<import("@workspace/api-client-react").ListingResponse[]>(`/listings${q ? `?${q}` : ""}`);
+  },
+
+  reportListing: (listingId: number, reason: string) =>
+    apiFetch<{ ok: boolean }>(`/listings/${listingId}/report`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
 
 export async function uploadFile(file: File): Promise<{ objectPath: string }> {

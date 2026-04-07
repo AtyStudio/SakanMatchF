@@ -71,6 +71,26 @@ export interface CreateListingRequest {
   price: number;
   city: string;
   images?: string[];
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: number;
+  floor?: number;
+  isFurnished?: boolean;
+  neighborhood?: string;
+  amenities?: string[];
+  deposit?: number;
+  billsIncluded?: boolean;
+  agencyFees?: number;
+  availableFrom?: string;
+  smokingAllowed?: boolean;
+  petsAllowed?: boolean;
+  guestsAllowed?: boolean;
+  genderPreference?: string;
+  quietHours?: string;
+  minStay?: number;
+  maxStay?: number;
+  roommateNote?: string;
 }
 
 export interface ListingResponse {
@@ -83,11 +103,32 @@ export interface ListingResponse {
   ownerId: number;
   ownerEmail?: string;
   ownerName?: string | null;
+  ownerCreatedAt?: string | null;
   isFeatured?: boolean;
   viewCount?: number | null;
   contactClickCount?: number | null;
   requestCount?: number | null;
   createdAt?: string;
+  propertyType?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  area?: number | null;
+  floor?: number | null;
+  isFurnished?: boolean | null;
+  neighborhood?: string | null;
+  amenities?: string[];
+  deposit?: number | null;
+  billsIncluded?: boolean | null;
+  agencyFees?: number | null;
+  availableFrom?: string | null;
+  smokingAllowed?: boolean | null;
+  petsAllowed?: boolean | null;
+  guestsAllowed?: boolean | null;
+  genderPreference?: string | null;
+  quietHours?: string | null;
+  minStay?: number | null;
+  maxStay?: number | null;
+  roommateNote?: string | null;
 }
 
 export interface CreateSubscriptionResponse {

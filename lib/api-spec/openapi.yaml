@@ -533,6 +533,48 @@ components:
           type: array
           items:
             type: string
+        propertyType:
+          type: string
+        bedrooms:
+          type: integer
+        bathrooms:
+          type: integer
+        area:
+          type: number
+        floor:
+          type: integer
+        isFurnished:
+          type: boolean
+        neighborhood:
+          type: string
+        amenities:
+          type: array
+          items:
+            type: string
+        deposit:
+          type: number
+        billsIncluded:
+          type: boolean
+        agencyFees:
+          type: number
+        availableFrom:
+          type: string
+        smokingAllowed:
+          type: boolean
+        petsAllowed:
+          type: boolean
+        guestsAllowed:
+          type: boolean
+        genderPreference:
+          type: string
+        quietHours:
+          type: string
+        minStay:
+          type: integer
+        maxStay:
+          type: integer
+        roommateNote:
+          type: string
       required:
         - title
         - price
@@ -563,6 +605,9 @@ components:
         ownerName:
           type: string
           nullable: true
+        ownerCreatedAt:
+          type: string
+          nullable: true
         isFeatured:
           type: boolean
         viewCount:
@@ -576,6 +621,67 @@ components:
           nullable: true
         createdAt:
           type: string
+        propertyType:
+          type: string
+          nullable: true
+        bedrooms:
+          type: integer
+          nullable: true
+        bathrooms:
+          type: integer
+          nullable: true
+        area:
+          type: number
+          nullable: true
+        floor:
+          type: integer
+          nullable: true
+        isFurnished:
+          type: boolean
+          nullable: true
+        neighborhood:
+          type: string
+          nullable: true
+        amenities:
+          type: array
+          items:
+            type: string
+        deposit:
+          type: number
+          nullable: true
+        billsIncluded:
+          type: boolean
+          nullable: true
+        agencyFees:
+          type: number
+          nullable: true
+        availableFrom:
+          type: string
+          nullable: true
+        smokingAllowed:
+          type: boolean
+          nullable: true
+        petsAllowed:
+          type: boolean
+          nullable: true
+        guestsAllowed:
+          type: boolean
+          nullable: true
+        genderPreference:
+          type: string
+          nullable: true
+        quietHours:
+          type: string
+          nullable: true
+        minStay:
+          type: integer
+          nullable: true
+        maxStay:
+          type: integer
+          nullable: true
+        roommateNote:
+          type: string
+          nullable: true
       required:
         - id
         - title

@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { db, listingsTable, usersTable, requestsTable } from "@workspace/db";
+import { db, listingsTable, usersTable, requestsTable, listingReportsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireOwner, optionalAuth, type AuthRequest } from "../middlewares/auth";
 
@@ -16,12 +17,33 @@ const createListingSchema = z.object({
   price: z.number().positive(),
   city: z.string().min(1),
   images: z.array(z.string()).optional().default([]),
+  propertyType: z.enum(["room", "studio", "apartment", "villa"]).optional(),
+  bedrooms: z.number().int().min(0).optional(),
+  bathrooms: z.number().int().min(0).optional(),
+  area: z.number().positive().optional(),
+  floor: z.number().int().optional(),
+  isFurnished: z.boolean().optional(),
+  neighborhood: z.string().optional(),
+  amenities: z.array(z.string()).optional().default([]),
+  deposit: z.number().min(0).optional(),
+  billsIncluded: z.boolean().optional(),
+  agencyFees: z.number().min(0).optional(),
+  availableFrom: z.string().optional(),
+  smokingAllowed: z.boolean().optional(),
+  petsAllowed: z.boolean().optional(),
+  guestsAllowed: z.boolean().optional(),
+  genderPreference: z.enum(["any", "male", "female"]).optional(),
+  quietHours: z.string().optional(),
+  minStay: z.number().int().min(1).optional(),
+  maxStay: z.number().int().min(1).optional(),
+  roommateNote: z.string().optional(),
 });
 
 type ListingRow = typeof listingsTable.$inferSelect & {
   ownerEmail?: string;
   ownerName?: string | null;
   ownerIsPremium?: boolean;
+  ownerCreatedAt?: Date | null;
   requestCount?: number;
 };
 
@@ -36,13 +58,36 @@ function formatListing(listing: ListingRow, showAnalytics = false) {
     ownerId: listing.ownerId,
     ownerEmail: listing.ownerEmail ?? undefined,
     ownerName: listing.ownerName ?? null,
+    ownerCreatedAt: listing.ownerCreatedAt ? listing.ownerCreatedAt.toISOString() : null,
     isFeatured: listing.ownerIsPremium ?? false,
     viewCount: showAnalytics ? (listing.viewCount ?? 0) : null,
     contactClickCount: showAnalytics ? (listing.contactClickCount ?? 0) : null,
     requestCount: showAnalytics ? (listing.requestCount ?? 0) : null,
     createdAt: listing.createdAt.toISOString(),
+    propertyType: listing.propertyType ?? null,
+    bedrooms: listing.bedrooms ?? null,
+    bathrooms: listing.bathrooms ?? null,
+    area: listing.area ? parseFloat(listing.area as string) : null,
+    floor: listing.floor ?? null,
+    isFurnished: listing.isFurnished ?? null,
+    neighborhood: listing.neighborhood ?? null,
+    amenities: listing.amenities ?? [],
+    deposit: listing.deposit ? parseFloat(listing.deposit as string) : null,
+    billsIncluded: listing.billsIncluded ?? null,
+    agencyFees: listing.agencyFees ? parseFloat(listing.agencyFees as string) : null,
+    availableFrom: listing.availableFrom ?? null,
+    smokingAllowed: listing.smokingAllowed ?? null,
+    petsAllowed: listing.petsAllowed ?? null,
+    guestsAllowed: listing.guestsAllowed ?? null,
+    genderPreference: listing.genderPreference ?? null,
+    quietHours: listing.quietHours ?? null,
+    minStay: listing.minStay ?? null,
+    maxStay: listing.maxStay ?? null,
+    roommateNote: listing.roommateNote ?? null,
   };
 }
+
+const listingCols = getTableColumns(listingsTable);
 
 router.get("/", async (req, res) => {
   try {
@@ -52,19 +97,11 @@ router.get("/", async (req, res) => {
 
     const rows = await db
       .select({
-        id: listingsTable.id,
-        title: listingsTable.title,
-        description: listingsTable.description,
-        price: listingsTable.price,
-        city: listingsTable.city,
-        images: listingsTable.images,
-        ownerId: listingsTable.ownerId,
+        ...listingCols,
         ownerEmail: usersTable.email,
         ownerName: usersTable.name,
         ownerIsPremium: usersTable.isPremium,
-        viewCount: listingsTable.viewCount,
-        contactClickCount: listingsTable.contactClickCount,
-        createdAt: listingsTable.createdAt,
+        ownerCreatedAt: usersTable.createdAt,
       })
       .from(listingsTable)
       .leftJoin(usersTable, eq(listingsTable.ownerId, usersTable.id))
@@ -82,7 +119,7 @@ router.get("/", async (req, res) => {
       results = results.filter((r) => parseFloat(r.price as string) <= maxPrice);
     }
 
-    res.json(results.map(formatListing));
+    res.json(results.map(r => formatListing(r)));
   } catch (err) {
     req.log.error({ err }, "Get listings error");
     res.status(500).json({ error: "Internal server error" });
@@ -93,19 +130,11 @@ router.get("/my", requireAuth, async (req: AuthRequest, res) => {
   try {
     const rows = await db
       .select({
-        id: listingsTable.id,
-        title: listingsTable.title,
-        description: listingsTable.description,
-        price: listingsTable.price,
-        city: listingsTable.city,
-        images: listingsTable.images,
-        ownerId: listingsTable.ownerId,
+        ...listingCols,
         ownerEmail: usersTable.email,
         ownerName: usersTable.name,
         ownerIsPremium: usersTable.isPremium,
-        viewCount: listingsTable.viewCount,
-        contactClickCount: listingsTable.contactClickCount,
-        createdAt: listingsTable.createdAt,
+        ownerCreatedAt: usersTable.createdAt,
       })
       .from(listingsTable)
       .leftJoin(usersTable, eq(listingsTable.ownerId, usersTable.id))
@@ -153,19 +182,11 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res) => {
   try {
     const [row] = await db
       .select({
-        id: listingsTable.id,
-        title: listingsTable.title,
-        description: listingsTable.description,
-        price: listingsTable.price,
-        city: listingsTable.city,
-        images: listingsTable.images,
-        ownerId: listingsTable.ownerId,
+        ...listingCols,
         ownerEmail: usersTable.email,
         ownerName: usersTable.name,
         ownerIsPremium: usersTable.isPremium,
-        viewCount: listingsTable.viewCount,
-        contactClickCount: listingsTable.contactClickCount,
-        createdAt: listingsTable.createdAt,
+        ownerCreatedAt: usersTable.createdAt,
       })
       .from(listingsTable)
       .leftJoin(usersTable, eq(listingsTable.ownerId, usersTable.id))
@@ -260,6 +281,44 @@ router.post("/:id/contact-click", async (req, res) => {
   }
 });
 
+router.post("/:id/report", requireAuth, async (req: AuthRequest, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid listing ID" });
+    return;
+  }
+
+  const result = z.object({ reason: z.string().min(1) }).safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Validation error" });
+    return;
+  }
+
+  try {
+    const [existing] = await db
+      .select({ id: listingsTable.id })
+      .from(listingsTable)
+      .where(eq(listingsTable.id, id))
+      .limit(1);
+
+    if (!existing) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    await db.insert(listingReportsTable).values({
+      listingId: id,
+      reporterId: req.user!.id,
+      reason: result.data.reason,
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Report listing error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/", requireAuth, requireOwner, async (req: AuthRequest, res) => {
   const result = createListingSchema.safeParse(req.body);
   if (!result.success) {
@@ -296,15 +355,36 @@ router.post("/", requireAuth, requireOwner, async (req: AuthRequest, res) => {
       return;
     }
 
+    const data = result.data;
     const [listing] = await db
       .insert(listingsTable)
       .values({
-        title: result.data.title,
-        description: result.data.description ?? null,
-        price: result.data.price.toString(),
-        city: result.data.city,
-        images: result.data.images,
+        title: data.title,
+        description: data.description ?? null,
+        price: data.price.toString(),
+        city: data.city,
+        images: data.images,
         ownerId: user.id,
+        propertyType: data.propertyType ?? null,
+        bedrooms: data.bedrooms ?? null,
+        bathrooms: data.bathrooms ?? null,
+        area: data.area?.toString() ?? null,
+        floor: data.floor ?? null,
+        isFurnished: data.isFurnished ?? null,
+        neighborhood: data.neighborhood ?? null,
+        amenities: data.amenities ?? [],
+        deposit: data.deposit?.toString() ?? null,
+        billsIncluded: data.billsIncluded ?? null,
+        agencyFees: data.agencyFees?.toString() ?? null,
+        availableFrom: data.availableFrom ?? null,
+        smokingAllowed: data.smokingAllowed ?? null,
+        petsAllowed: data.petsAllowed ?? null,
+        guestsAllowed: data.guestsAllowed ?? null,
+        genderPreference: data.genderPreference ?? null,
+        quietHours: data.quietHours ?? null,
+        minStay: data.minStay ?? null,
+        maxStay: data.maxStay ?? null,
+        roommateNote: data.roommateNote ?? null,
       })
       .returning();
 

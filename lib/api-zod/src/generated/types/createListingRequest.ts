@@ -12,4 +12,24 @@ export interface CreateListingRequest {
   price: number;
   city: string;
   images?: string[];
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: number;
+  floor?: number;
+  isFurnished?: boolean;
+  neighborhood?: string;
+  amenities?: string[];
+  deposit?: number;
+  billsIncluded?: boolean;
+  agencyFees?: number;
+  availableFrom?: string;
+  smokingAllowed?: boolean;
+  petsAllowed?: boolean;
+  guestsAllowed?: boolean;
+  genderPreference?: string;
+  quietHours?: string;
+  minStay?: number;
+  maxStay?: number;
+  roommateNote?: string;
 }
