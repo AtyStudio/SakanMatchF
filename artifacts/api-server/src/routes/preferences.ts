@@ -13,6 +13,7 @@ const preferencesSchema = z.object({
   lifestyle: z.enum(["quiet", "social", "any"]).optional(),
   smoking: z.enum(["yes", "no", "any"]).optional(),
   genderPref: z.enum(["male", "female", "any"]).optional(),
+  wantedAmenities: z.array(z.string()).optional(),
 });
 
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
@@ -54,18 +55,21 @@ router.put("/", requireAuth, async (req: AuthRequest, res) => {
       .where(eq(userPreferencesTable.userId, req.user!.id))
       .limit(1);
 
+    const setPayload = {
+      city: data.city ?? null,
+      budgetMin: data.budgetMin?.toString() ?? null,
+      budgetMax: data.budgetMax?.toString() ?? null,
+      lifestyle: data.lifestyle ?? "any" as const,
+      smoking: data.smoking ?? "any" as const,
+      genderPref: data.genderPref ?? "any" as const,
+      wantedAmenities: data.wantedAmenities ?? [],
+      updatedAt: new Date(),
+    };
+
     if (existing.length > 0) {
       const [updated] = await db
         .update(userPreferencesTable)
-        .set({
-          city: data.city ?? null,
-          budgetMin: data.budgetMin?.toString() ?? null,
-          budgetMax: data.budgetMax?.toString() ?? null,
-          lifestyle: data.lifestyle ?? "any",
-          smoking: data.smoking ?? "any",
-          genderPref: data.genderPref ?? "any",
-          updatedAt: new Date(),
-        })
+        .set(setPayload)
         .where(eq(userPreferencesTable.userId, req.user!.id))
         .returning();
       res.json(updated);
@@ -74,12 +78,7 @@ router.put("/", requireAuth, async (req: AuthRequest, res) => {
         .insert(userPreferencesTable)
         .values({
           userId: req.user!.id,
-          city: data.city ?? null,
-          budgetMin: data.budgetMin?.toString() ?? null,
-          budgetMax: data.budgetMax?.toString() ?? null,
-          lifestyle: data.lifestyle ?? "any",
-          smoking: data.smoking ?? "any",
-          genderPref: data.genderPref ?? "any",
+          ...setPayload,
         })
         .returning();
       res.status(201).json(created);

@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, ArrowLeft, Image as ImageIcon, X, Upload, Crown, Star, BarChart2, Layers,
   ChevronDown, ChevronUp, Home, DollarSign, Shield, Users, Wifi, UtensilsCrossed,
-  WashingMachine, ParkingSquare, AirVent, Flame,
+  WashingMachine, ParkingSquare, AirVent, Flame, MapPin,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -418,6 +418,26 @@ export default function NewListing() {
               )}
             </div>
 
+            {/* Optional: Location */}
+            <div className="space-y-3">
+              <SectionHeader
+                icon={<MapPin className="w-4 h-4" />}
+                title={t("listings.locationSection")}
+                badge={t("listings.optionalSection")}
+                open={!!openSections.location}
+                onToggle={() => toggleSection("location")}
+              />
+              {openSections.location && (
+                <div className="pl-4 pt-2 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.neighborhood")}</label>
+                    <input type="text" value={extras.neighborhood} onChange={e => setField("neighborhood", e.target.value)}
+                      placeholder={t("listings.neighborhoodPh")} className={inputClass} />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Optional: Property Details */}
             <div className="space-y-3">
               <SectionHeader
@@ -439,11 +459,6 @@ export default function NewListing() {
                         <option value="apartment">{t("listings.apartment")}</option>
                         <option value="villa">{t("listings.villa")}</option>
                       </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.neighborhood")}</label>
-                      <input type="text" value={extras.neighborhood} onChange={e => setField("neighborhood", e.target.value)}
-                        placeholder={t("listings.neighborhoodPh")} className={inputClass} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

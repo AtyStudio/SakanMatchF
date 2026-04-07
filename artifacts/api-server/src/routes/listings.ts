@@ -312,7 +312,7 @@ router.post("/:id/report", requireAuth, async (req: AuthRequest, res) => {
       reason: result.data.reason,
     });
 
-    res.json({ ok: true });
+    res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Report listing error");
     res.status(500).json({ error: "Internal server error" });

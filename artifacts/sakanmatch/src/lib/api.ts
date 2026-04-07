@@ -107,6 +107,7 @@ export interface PreferencesPayload {
   lifestyle?: string | null;
   smoking?: string | null;
   genderPref?: string | null;
+  wantedAmenities?: string[];
 }
 
 export interface PreferencesResponse {
@@ -118,6 +119,7 @@ export interface PreferencesResponse {
   lifestyle: string | null;
   smoking: string | null;
   genderPref: string | null;
+  wantedAmenities: string[];
   updatedAt: string;
 }
 

@@ -70,6 +70,16 @@ function computeMatchScore(prefs: PreferencesResponse | null, listing: ListingRe
     });
   }
 
+  const wantedAmenities = prefs.wantedAmenities ?? [];
+  if (wantedAmenities.length > 0 && (listing.amenities ?? []).length > 0) {
+    const listingAmenities = listing.amenities ?? [];
+    const matched = wantedAmenities.filter(a => listingAmenities.includes(a));
+    factors.push({
+      nameKey: "matchAmenities",
+      match: matched.length > 0,
+    });
+  }
+
   if (factors.length === 0) return null;
 
   const matched = factors.filter(f => f.match);

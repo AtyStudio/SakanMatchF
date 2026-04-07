@@ -4,9 +4,19 @@ import { Navbar } from "@/components/Navbar";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { Loader2, ArrowLeft, Sliders } from "lucide-react";
+import { Loader2, ArrowLeft, Sliders, Wifi, UtensilsCrossed, WashingMachine, ParkingSquare, AirVent, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+
+const AMENITY_ICONS: Record<string, React.ReactNode> = {
+  wifi: <Wifi className="w-3.5 h-3.5" />,
+  kitchen: <UtensilsCrossed className="w-3.5 h-3.5" />,
+  washingMachine: <WashingMachine className="w-3.5 h-3.5" />,
+  parking: <ParkingSquare className="w-3.5 h-3.5" />,
+  ac: <AirVent className="w-3.5 h-3.5" />,
+  heating: <Flame className="w-3.5 h-3.5" />,
+};
+const AMENITY_KEYS = ["wifi", "kitchen", "washingMachine", "parking", "ac", "heating"] as const;
 
 const MOROCCAN_CITIES = ["Casablanca", "Rabat", "Marrakech", "Fes", "Tangier", "Agadir", "Meknes", "Oujda", "Kenitra", "Tetouan"];
 
@@ -22,6 +32,7 @@ export default function Preferences() {
   const [lifestyle, setLifestyle] = useState<"quiet" | "social" | "any">("any");
   const [smoking, setSmoking] = useState<"yes" | "no" | "any">("any");
   const [genderPref, setGenderPref] = useState<"male" | "female" | "any">("any");
+  const [wantedAmenities, setWantedAmenities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -43,9 +54,16 @@ export default function Preferences() {
         setLifestyle(ls || "any");
         setSmoking(sm || "any");
         setGenderPref(gp || "any");
+        setWantedAmenities(pref.wantedAmenities ?? []);
       }
     }).catch(() => {}).finally(() => setIsLoading(false));
   }, [user]);
+
+  const toggleAmenity = (key: string) => {
+    setWantedAmenities(prev =>
+      prev.includes(key) ? prev.filter(a => a !== key) : [...prev, key]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +76,7 @@ export default function Preferences() {
         lifestyle,
         smoking,
         genderPref,
+        wantedAmenities,
       });
       toast({ title: t("preferences.saved"), description: t("preferences.savedDesc") });
     } catch (err: unknown) {
@@ -197,6 +216,28 @@ export default function Preferences() {
                 { value: "female", label: t("preferences.femaleOnly") },
               ]}
             />
+
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-3">{t("preferences.wantedAmenities")}</label>
+              <div className="flex flex-wrap gap-2">
+                {AMENITY_KEYS.map(key => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleAmenity(key)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border-2",
+                      wantedAmenities.includes(key)
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                    )}
+                  >
+                    {AMENITY_ICONS[key]}
+                    {t(`newListing.amenity_${key}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <button
               type="submit"
