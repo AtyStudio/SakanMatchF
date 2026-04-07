@@ -170,3 +170,7 @@ export type GetListingsParams = {
   minPrice?: number;
   maxPrice?: number;
 };
+
+export type ReportListingBody = {
+  reason: string;
+};

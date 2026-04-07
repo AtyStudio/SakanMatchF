@@ -366,6 +366,11 @@
     "houseRulesSection": "House Rules",
     "roommateSection": "Roommate Preferences",
     "optionalSection": "optional",
+    "furnished": "Furnished",
+    "unfurnished": "Unfurnished",
+    "notSpecified": "Not specified",
+    "yes": "Yes",
+    "no": "No",
     "perMonth": "/mo",
     "removeFromFavorites": "Remove from favorites",
     "addToFavorites": "Add to favorites",
@@ -459,7 +464,9 @@
       "area": "Area",
       "bedrooms": "Bedrooms",
       "bathrooms": "Bathrooms",
-      "neighborhood": "Neighborhood"
+      "neighborhood": "Neighborhood",
+      "locationSection": "Location",
+      "mapPlaceholder": "Interactive map coming soon"
     }
   },
   "premium": {

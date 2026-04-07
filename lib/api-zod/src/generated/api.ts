@@ -186,6 +186,22 @@ export const GetMyListingsResponseItem = zod.object({
 export const GetMyListingsResponse = zod.array(GetMyListingsResponseItem);
 
 /**
+ * @summary Report a listing for abuse or spam
+ */
+export const ReportListingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ReportListingBody = zod.object({
+  reason: zod.string(),
+});
+
+export const ReportListingResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
+
+/**
  * @summary Record a contact click for a listing
  */
 export const RecordContactClickParams = zod.object({

@@ -134,16 +134,16 @@ export default function NewListing() {
     bathrooms: "",
     area: "",
     floor: "",
-    isFurnished: false,
+    isFurnished: null as null | boolean,
     neighborhood: "",
     amenities: [] as string[],
     deposit: "",
-    billsIncluded: false,
+    billsIncluded: null as null | boolean,
     agencyFees: "",
     availableFrom: "",
-    smokingAllowed: false,
-    petsAllowed: false,
-    guestsAllowed: false,
+    smokingAllowed: null as null | boolean,
+    petsAllowed: null as null | boolean,
+    guestsAllowed: null as null | boolean,
     genderPreference: "" as "" | "any" | "male" | "female",
     quietHours: "",
     minStay: "",
@@ -275,16 +275,16 @@ export default function NewListing() {
         bathrooms: extras.bathrooms ? parseInt(extras.bathrooms) : undefined,
         area: extras.area ? parseFloat(extras.area) : undefined,
         floor: extras.floor ? parseInt(extras.floor) : undefined,
-        isFurnished: extras.isFurnished || undefined,
+        isFurnished: extras.isFurnished !== null ? extras.isFurnished : undefined,
         neighborhood: extras.neighborhood || undefined,
         amenities: extras.amenities.length > 0 ? extras.amenities : undefined,
         deposit: extras.deposit ? parseFloat(extras.deposit) : undefined,
-        billsIncluded: extras.billsIncluded || undefined,
+        billsIncluded: extras.billsIncluded !== null ? extras.billsIncluded : undefined,
         agencyFees: extras.agencyFees ? parseFloat(extras.agencyFees) : undefined,
         availableFrom: extras.availableFrom || undefined,
-        smokingAllowed: extras.smokingAllowed || undefined,
-        petsAllowed: extras.petsAllowed || undefined,
-        guestsAllowed: extras.guestsAllowed || undefined,
+        smokingAllowed: extras.smokingAllowed !== null ? extras.smokingAllowed : undefined,
+        petsAllowed: extras.petsAllowed !== null ? extras.petsAllowed : undefined,
+        guestsAllowed: extras.guestsAllowed !== null ? extras.guestsAllowed : undefined,
         genderPreference: extras.genderPreference || undefined,
         quietHours: extras.quietHours || undefined,
         minStay: extras.minStay ? parseInt(extras.minStay) : undefined,
@@ -468,11 +468,14 @@ export default function NewListing() {
                         placeholder={t("listings.floorPh")} className={inputClass} />
                     </div>
                   </div>
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" checked={extras.isFurnished} onChange={e => setField("isFurnished", e.target.checked)}
-                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                    <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{t("listings.isFurnished")}</span>
-                  </label>
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.isFurnished")}</label>
+                    <select value={extras.isFurnished === null ? "" : extras.isFurnished ? "yes" : "no"} onChange={e => setField("isFurnished", e.target.value === "" ? null : e.target.value === "yes")} className={selectClass}>
+                      <option value="">{t("listings.propertyTypePh")}</option>
+                      <option value="yes">{t("listings.furnished")}</option>
+                      <option value="no">{t("listings.unfurnished")}</option>
+                    </select>
+                  </div>
                 </div>
               )}
             </div>
@@ -533,12 +536,17 @@ export default function NewListing() {
                       <input type="date" value={extras.availableFrom} onChange={e => setField("availableFrom", e.target.value)}
                         className={inputClass} />
                     </div>
-                    <div className="flex items-end">
-                      <label className="flex items-center gap-3 cursor-pointer group pb-3">
-                        <input type="checkbox" checked={extras.billsIncluded} onChange={e => setField("billsIncluded", e.target.checked)}
-                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{t("listings.billsIncluded")}</span>
-                      </label>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.billsIncluded")}</label>
+                      <select
+                        value={extras.billsIncluded === null ? "" : extras.billsIncluded ? "yes" : "no"}
+                        onChange={e => setField("billsIncluded", e.target.value === "" ? null : e.target.value === "yes")}
+                        className={selectClass}
+                      >
+                        <option value="">{t("listings.notSpecified")}</option>
+                        <option value="yes">{t("listings.yes")}</option>
+                        <option value="no">{t("listings.no")}</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -584,13 +592,20 @@ export default function NewListing() {
                         placeholder={t("listings.stayPh")} className={inputClass} />
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-x-6 gap-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {(["smokingAllowed", "petsAllowed", "guestsAllowed"] as const).map(key => (
-                      <label key={key} className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={extras[key]} onChange={e => setField(key, e.target.checked)}
-                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{t(`listings.${key}`)}</span>
-                      </label>
+                      <div key={key}>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t(`listings.${key}`)}</label>
+                        <select
+                          value={extras[key] === null ? "" : extras[key] ? "yes" : "no"}
+                          onChange={e => setField(key, e.target.value === "" ? null : e.target.value === "yes")}
+                          className={selectClass}
+                        >
+                          <option value="">{t("listings.notSpecified")}</option>
+                          <option value="yes">{t("listings.yes")}</option>
+                          <option value="no">{t("listings.no")}</option>
+                        </select>
+                      </div>
                     ))}
                   </div>
                 </div>

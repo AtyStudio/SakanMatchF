@@ -70,7 +70,7 @@ function computeMatchScore(prefs: PreferencesResponse | null, listing: ListingRe
     });
   }
 
-  if (factors.length === 0) return { score: 100, reasons: [] as string[] };
+  if (factors.length === 0) return null;
 
   const matched = factors.filter(f => f.match);
   return {
@@ -482,6 +482,22 @@ export default function ListingDetail() {
                   <Calendar className="w-3.5 h-3.5 text-primary" />
                   {t("listings.detail.listedOn")} {listing.createdAt ? format(new Date(listing.createdAt), "MMM d, yyyy") : "—"}
                 </div>
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className="bg-card rounded-3xl p-8 border border-border/50 shadow-sm">
+              <h2 className="text-xl font-display font-bold text-foreground mb-5">{t("listings.detail.locationSection")}</h2>
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-sm font-medium text-foreground">
+                  {listing.neighborhood ? `${listing.neighborhood}, ${listing.city}` : listing.city}
+                </span>
+              </div>
+              <div className="w-full h-48 rounded-2xl bg-secondary/60 border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground gap-2">
+                <MapPin className="w-8 h-8 text-primary/40" />
+                <span className="text-sm font-medium">{listing.city}{listing.neighborhood ? ` · ${listing.neighborhood}` : ""}</span>
+                <span className="text-xs">{t("listings.detail.mapPlaceholder")}</span>
               </div>
             </div>
 

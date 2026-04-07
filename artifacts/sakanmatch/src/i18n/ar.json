@@ -366,6 +366,11 @@
     "houseRulesSection": "قواعد المنزل",
     "roommateSection": "تفضيلات الشريك",
     "optionalSection": "اختياري",
+    "furnished": "مفروش",
+    "unfurnished": "غير مفروش",
+    "notSpecified": "غير محدد",
+    "yes": "نعم",
+    "no": "لا",
     "perMonth": "/شهر",
     "removeFromFavorites": "إزالة من المفضلة",
     "addToFavorites": "إضافة إلى المفضلة",
@@ -459,7 +464,9 @@
       "area": "المساحة",
       "bedrooms": "غرف النوم",
       "bathrooms": "الحمامات",
-      "neighborhood": "الحي"
+      "neighborhood": "الحي",
+      "locationSection": "الموقع",
+      "mapPlaceholder": "الخريطة التفاعلية قادمة قريباً"
     }
   },
   "premium": {

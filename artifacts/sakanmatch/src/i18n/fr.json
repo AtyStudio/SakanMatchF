@@ -366,6 +366,11 @@
     "houseRulesSection": "Règles de la maison",
     "roommateSection": "Préférences de colocataire",
     "optionalSection": "optionnel",
+    "furnished": "Meublé",
+    "unfurnished": "Non meublé",
+    "notSpecified": "Non spécifié",
+    "yes": "Oui",
+    "no": "Non",
     "perMonth": "/mois",
     "removeFromFavorites": "Retirer des favoris",
     "addToFavorites": "Ajouter aux favoris",
@@ -459,7 +464,9 @@
       "area": "Surface",
       "bedrooms": "Chambres",
       "bathrooms": "Salles de bain",
-      "neighborhood": "Quartier"
+      "neighborhood": "Quartier",
+      "locationSection": "Localisation",
+      "mapPlaceholder": "Carte interactive bientôt disponible"
     }
   },
   "premium": {

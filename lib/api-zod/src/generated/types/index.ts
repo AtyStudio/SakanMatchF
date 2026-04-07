@@ -17,6 +17,7 @@ export * from "./healthStatus";
 export * from "./listingResponse";
 export * from "./loginRequest";
 export * from "./premiumStatusResponse";
+export * from "./reportListingBody";
 export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";
 export * from "./signupRequest";

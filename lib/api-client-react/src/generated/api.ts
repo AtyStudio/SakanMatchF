@@ -28,6 +28,7 @@ import type {
   ListingResponse,
   LoginRequest,
   PremiumStatusResponse,
+  ReportListingBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   SignupRequest,
@@ -608,6 +609,93 @@ export function useGetMyListings<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Report a listing for abuse or spam
+ */
+export const getReportListingUrl = (id: number) => {
+  return `/api/listings/${id}/report`;
+};
+
+export const reportListing = async (
+  id: number,
+  reportListingBody: ReportListingBody,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getReportListingUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reportListingBody),
+  });
+};
+
+export const getReportListingMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportListing>>,
+    TError,
+    { id: number; data: BodyType<ReportListingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reportListing>>,
+  TError,
+  { id: number; data: BodyType<ReportListingBody> },
+  TContext
+> => {
+  const mutationKey = ["reportListing"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reportListing>>,
+    { id: number; data: BodyType<ReportListingBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reportListing(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReportListingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reportListing>>
+>;
+export type ReportListingMutationBody = BodyType<ReportListingBody>;
+export type ReportListingMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Report a listing for abuse or spam
+ */
+export const useReportListing = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportListing>>,
+    TError,
+    { id: number; data: BodyType<ReportListingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reportListing>>,
+  TError,
+  { id: number; data: BodyType<ReportListingBody> },
+  TContext
+> => {
+  return useMutation(getReportListingMutationOptions(options));
+};
 
 /**
  * @summary Record a contact click for a listing
