@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetMe } from "@workspace/api-client-react";
 import type { UserResponse } from "@workspace/api-client-react";
@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const { data: user, isLoading: isQueryLoading } = useGetMe({
+  const { data: user, isLoading: isQueryLoading, isError } = useGetMe({
     query: {
       enabled: !!token,
       retry: false,
@@ -29,14 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading = !!token && isQueryLoading;
 
-  const login = (newToken: string, newUser: UserResponse) => {
-    localStorage.setItem("sakanmatch_token", newToken);
-    setToken(newToken);
-    queryClient.setQueryData(["/api/auth/me"], newUser);
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-  };
-
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("sakanmatch_token");
     setToken(null);
     queryClient.cancelQueries().then(() => {
@@ -44,14 +37,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear();
     });
     setLocation("/login");
-  };
+  }, [queryClient, setLocation]);
 
-  // If token is invalid/expired
+  const login = useCallback((newToken: string, newUser: UserResponse) => {
+    localStorage.setItem("sakanmatch_token", newToken);
+    setToken(newToken);
+    queryClient.setQueryData(["/api/auth/me"], newUser);
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+  }, [queryClient]);
+
+  // If token is invalid/expired (API returned an error), log out
   useEffect(() => {
-    if (token && !isLoading && !user) {
+    if (token && isError) {
       logout();
     }
-  }, [token, user, isLoading]);
+  }, [token, isError, logout]);
 
   return (
     <AuthContext.Provider value={{ user: user || null, token, isLoading, login, logout }}>

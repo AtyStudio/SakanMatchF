@@ -6,18 +6,21 @@ const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   let [resource, config] = args;
   const token = localStorage.getItem("sakanmatch_token");
-  
+
   if (token) {
     if (typeof resource === 'string' && resource.startsWith('/api')) {
       config = config || {};
       const headers = new Headers(config.headers);
       headers.set("Authorization", `Bearer ${token}`);
-      config.headers = headers;
+      config = { ...config, headers };
     } else if (resource instanceof Request && resource.url.includes('/api')) {
-      resource.headers.set("Authorization", `Bearer ${token}`);
+      // Request.headers are immutable — create a new Request with merged headers
+      const headers = new Headers(resource.headers);
+      headers.set("Authorization", `Bearer ${token}`);
+      resource = new Request(resource, { headers });
     }
   }
-  
+
   return originalFetch(resource, config);
 };
 
