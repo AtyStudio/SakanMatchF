@@ -36,6 +36,9 @@ export const listingsTable = pgTable("listings", {
   minStay: integer("min_stay"),
   maxStay: integer("max_stay"),
   roommateNote: text("roommate_note"),
+  latitude: numeric("latitude", { precision: 9, scale: 6 }),
+  longitude: numeric("longitude", { precision: 9, scale: 6 }),
+  address: text("address"),
 });
 
 export const insertListingSchema = createInsertSchema(listingsTable).omit({ id: true, createdAt: true });

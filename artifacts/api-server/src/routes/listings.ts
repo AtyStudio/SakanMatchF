@@ -37,6 +37,9 @@ const createListingSchema = z.object({
   minStay: z.number().int().min(1).optional(),
   maxStay: z.number().int().min(1).optional(),
   roommateNote: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  address: z.string().optional(),
 });
 
 type ListingRow = typeof listingsTable.$inferSelect & {
@@ -84,6 +87,9 @@ function formatListing(listing: ListingRow, showAnalytics = false) {
     minStay: listing.minStay ?? null,
     maxStay: listing.maxStay ?? null,
     roommateNote: listing.roommateNote ?? null,
+    latitude: listing.latitude != null ? parseFloat(listing.latitude as string) : null,
+    longitude: listing.longitude != null ? parseFloat(listing.longitude as string) : null,
+    address: listing.address ?? null,
   };
 }
 
@@ -355,6 +361,27 @@ router.post("/", requireAuth, requireOwner, async (req: AuthRequest, res) => {
       return;
     }
 
+    if (!user.isPremium) {
+      const premiumFieldsUsed = [
+        result.data.deposit != null,
+        result.data.agencyFees != null,
+        result.data.billsIncluded != null,
+        result.data.availableFrom != null,
+        result.data.roommateNote != null,
+        result.data.latitude != null,
+        result.data.longitude != null,
+      ].some(Boolean);
+
+      if (premiumFieldsUsed) {
+        res.status(403).json({
+          error: "Upgrade required",
+          code: "upgrade_required",
+          message: "Financial details, roommate preferences, and exact location require a Premium subscription.",
+        });
+        return;
+      }
+    }
+
     const data = result.data;
     const [listing] = await db
       .insert(listingsTable)
@@ -372,6 +399,7 @@ router.post("/", requireAuth, requireOwner, async (req: AuthRequest, res) => {
         floor: data.floor ?? null,
         isFurnished: data.isFurnished ?? null,
         neighborhood: data.neighborhood ?? null,
+        address: data.address ?? null,
         amenities: data.amenities ?? [],
         deposit: data.deposit?.toString() ?? null,
         billsIncluded: data.billsIncluded ?? null,
@@ -385,6 +413,8 @@ router.post("/", requireAuth, requireOwner, async (req: AuthRequest, res) => {
         minStay: data.minStay ?? null,
         maxStay: data.maxStay ?? null,
         roommateNote: data.roommateNote ?? null,
+        latitude: data.latitude?.toString() ?? null,
+        longitude: data.longitude?.toString() ?? null,
       })
       .returning();
 

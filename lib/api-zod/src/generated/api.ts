@@ -109,6 +109,9 @@ export const GetListingsResponseItem = zod.object({
   minStay: zod.number().nullish(),
   maxStay: zod.number().nullish(),
   roommateNote: zod.string().nullish(),
+  latitude: zod.number().nullish(),
+  longitude: zod.number().nullish(),
+  address: zod.string().nullish(),
 });
 export const GetListingsResponse = zod.array(GetListingsResponseItem);
 
@@ -141,6 +144,9 @@ export const CreateListingBody = zod.object({
   minStay: zod.number().optional(),
   maxStay: zod.number().optional(),
   roommateNote: zod.string().optional(),
+  latitude: zod.number().optional(),
+  longitude: zod.number().optional(),
+  address: zod.string().optional(),
 });
 
 /**
@@ -182,6 +188,9 @@ export const GetMyListingsResponseItem = zod.object({
   minStay: zod.number().nullish(),
   maxStay: zod.number().nullish(),
   roommateNote: zod.string().nullish(),
+  latitude: zod.number().nullish(),
+  longitude: zod.number().nullish(),
+  address: zod.string().nullish(),
 });
 export const GetMyListingsResponse = zod.array(GetMyListingsResponseItem);
 
@@ -256,6 +265,9 @@ export const GetListingResponse = zod.object({
   minStay: zod.number().nullish(),
   maxStay: zod.number().nullish(),
   roommateNote: zod.string().nullish(),
+  latitude: zod.number().nullish(),
+  longitude: zod.number().nullish(),
+  address: zod.string().nullish(),
 });
 
 /**

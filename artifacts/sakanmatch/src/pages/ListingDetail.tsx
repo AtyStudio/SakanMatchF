@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { ListingCard } from "@/components/ListingCard";
+import { MapDisplay } from "@/components/MapDisplay";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80";
 
@@ -638,6 +639,24 @@ export default function ListingDetail() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Exact Location Map */}
+            {listing.latitude && listing.longitude && (
+              <div className="bg-card rounded-3xl p-8 border border-border/50 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  <h2 className="text-xl font-display font-bold text-foreground">{t("listings.mapPinSection")}</h2>
+                </div>
+                {listing.address && (
+                  <p className="text-sm text-muted-foreground mb-4">{listing.address}</p>
+                )}
+                <MapDisplay
+                  lat={parseFloat(String(listing.latitude))}
+                  lng={parseFloat(String(listing.longitude))}
+                  address={listing.address ?? undefined}
+                />
               </div>
             )}
 

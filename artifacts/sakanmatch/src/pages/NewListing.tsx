@@ -13,6 +13,8 @@ import {
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { PremiumLock } from "@/components/PremiumLock";
+import { MapPicker, type LocationResult } from "@/components/MapPicker";
 
 interface PreviewImage {
   id: string;
@@ -136,6 +138,7 @@ export default function NewListing() {
     floor: "",
     isFurnished: null as null | boolean,
     neighborhood: "",
+    address: "",
     amenities: [] as string[],
     deposit: "",
     billsIncluded: null as null | boolean,
@@ -150,6 +153,8 @@ export default function NewListing() {
     maxStay: "",
     roommateNote: "",
   });
+
+  const [pinLocation, setPinLocation] = useState<LocationResult | null>(null);
 
   const setField = (field: keyof typeof extras, value: unknown) =>
     setExtras(prev => ({ ...prev, [field]: value }));
@@ -277,6 +282,7 @@ export default function NewListing() {
         floor: extras.floor ? parseInt(extras.floor) : undefined,
         isFurnished: extras.isFurnished !== null ? extras.isFurnished : undefined,
         neighborhood: extras.neighborhood || undefined,
+        address: extras.address || (pinLocation?.address) || undefined,
         amenities: extras.amenities.length > 0 ? extras.amenities : undefined,
         deposit: extras.deposit ? parseFloat(extras.deposit) : undefined,
         billsIncluded: extras.billsIncluded !== null ? extras.billsIncluded : undefined,
@@ -290,6 +296,8 @@ export default function NewListing() {
         minStay: extras.minStay ? parseInt(extras.minStay) : undefined,
         maxStay: extras.maxStay ? parseInt(extras.maxStay) : undefined,
         roommateNote: extras.roommateNote || undefined,
+        latitude: pinLocation?.lat,
+        longitude: pinLocation?.lng,
       }
     });
   };
@@ -434,6 +442,21 @@ export default function NewListing() {
                     <input type="text" value={extras.neighborhood} onChange={e => setField("neighborhood", e.target.value)}
                       placeholder={t("listings.neighborhoodPh")} className={inputClass} />
                   </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.address")}</label>
+                    <input type="text" value={extras.address} onChange={e => setField("address", e.target.value)}
+                      placeholder={t("listings.addressPh")} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.mapPinSection")}</label>
+                    <PremiumLock isLocked={!isPremium} description={t("premium.mapLockDesc")}>
+                      <MapPicker
+                        value={pinLocation}
+                        onChange={setPinLocation}
+                        defaultCity={city}
+                      />
+                    </PremiumLock>
+                  </div>
                 </div>
               )}
             </div>
@@ -532,39 +555,41 @@ export default function NewListing() {
                 onToggle={() => toggleSection("financial")}
               />
               {openSections.financial && (
-                <div className="pl-4 space-y-4 pt-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.deposit")}</label>
-                      <input type="number" min="0" value={extras.deposit} onChange={e => setField("deposit", e.target.value)}
-                        placeholder={t("listings.depositPh")} className={inputClass} />
+                <PremiumLock isLocked={!isPremium} description={t("premium.financialLockDesc")}>
+                  <div className="pl-4 space-y-4 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.deposit")}</label>
+                        <input type="number" min="0" value={extras.deposit} onChange={e => setField("deposit", e.target.value)}
+                          placeholder={t("listings.depositPh")} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.agencyFees")}</label>
+                        <input type="number" min="0" value={extras.agencyFees} onChange={e => setField("agencyFees", e.target.value)}
+                          placeholder={t("listings.agencyFeesPh")} className={inputClass} />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.agencyFees")}</label>
-                      <input type="number" min="0" value={extras.agencyFees} onChange={e => setField("agencyFees", e.target.value)}
-                        placeholder={t("listings.agencyFeesPh")} className={inputClass} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.availableFrom")}</label>
+                        <input type="date" value={extras.availableFrom} onChange={e => setField("availableFrom", e.target.value)}
+                          className={inputClass} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.billsIncluded")}</label>
+                        <select
+                          value={extras.billsIncluded === null ? "" : extras.billsIncluded ? "yes" : "no"}
+                          onChange={e => setField("billsIncluded", e.target.value === "" ? null : e.target.value === "yes")}
+                          className={selectClass}
+                        >
+                          <option value="">{t("listings.notSpecified")}</option>
+                          <option value="yes">{t("listings.yes")}</option>
+                          <option value="no">{t("listings.no")}</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.availableFrom")}</label>
-                      <input type="date" value={extras.availableFrom} onChange={e => setField("availableFrom", e.target.value)}
-                        className={inputClass} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t("listings.billsIncluded")}</label>
-                      <select
-                        value={extras.billsIncluded === null ? "" : extras.billsIncluded ? "yes" : "no"}
-                        onChange={e => setField("billsIncluded", e.target.value === "" ? null : e.target.value === "yes")}
-                        className={selectClass}
-                      >
-                        <option value="">{t("listings.notSpecified")}</option>
-                        <option value="yes">{t("listings.yes")}</option>
-                        <option value="no">{t("listings.no")}</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                </PremiumLock>
               )}
             </div>
 
@@ -637,11 +662,13 @@ export default function NewListing() {
                 onToggle={() => toggleSection("roommate")}
               />
               {openSections.roommate && (
-                <div className="pl-4 pt-2">
-                  <textarea value={extras.roommateNote} onChange={e => setField("roommateNote", e.target.value)}
-                    placeholder={t("listings.roommateNotePh")} rows={3}
-                    className={`${inputClass} resize-none`} />
-                </div>
+                <PremiumLock isLocked={!isPremium} description={t("premium.roommateLockDesc")}>
+                  <div className="pl-4 pt-2">
+                    <textarea value={extras.roommateNote} onChange={e => setField("roommateNote", e.target.value)}
+                      placeholder={t("listings.roommateNotePh")} rows={3}
+                      className={`${inputClass} resize-none`} />
+                  </div>
+                </PremiumLock>
               )}
             </div>
 

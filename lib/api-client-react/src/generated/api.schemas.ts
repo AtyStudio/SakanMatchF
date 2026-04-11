@@ -91,6 +91,9 @@ export interface CreateListingRequest {
   minStay?: number;
   maxStay?: number;
   roommateNote?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }
 
 export interface ListingResponse {
@@ -129,6 +132,9 @@ export interface ListingResponse {
   minStay?: number | null;
   maxStay?: number | null;
   roommateNote?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
 }
 
 export interface CreateSubscriptionResponse {

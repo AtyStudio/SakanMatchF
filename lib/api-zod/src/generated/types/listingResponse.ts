@@ -42,4 +42,7 @@ export interface ListingResponse {
   minStay?: number | null;
   maxStay?: number | null;
   roommateNote?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
 }

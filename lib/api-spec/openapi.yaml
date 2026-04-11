@@ -619,6 +619,12 @@ components:
           type: integer
         roommateNote:
           type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        address:
+          type: string
       required:
         - title
         - price
@@ -724,6 +730,15 @@ components:
           type: integer
           nullable: true
         roommateNote:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        address:
           type: string
           nullable: true
       required:

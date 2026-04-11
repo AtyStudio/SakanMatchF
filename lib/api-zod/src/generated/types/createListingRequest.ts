@@ -32,4 +32,7 @@ export interface CreateListingRequest {
   minStay?: number;
   maxStay?: number;
   roommateNote?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }
