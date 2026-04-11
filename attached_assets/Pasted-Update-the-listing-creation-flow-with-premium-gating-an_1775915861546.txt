@@ -1,0 +1,71 @@
+Update the listing creation flow with premium gating and map-based location support.
+
+Goals:
+1. Some sections/features must stay available for free owners
+2. Some sections/features must be premium-only
+3. Add a proper location picker with map support
+
+Requirements:
+
+A) Free vs Premium listing fields
+Keep these available for FREE owners:
+- Photos (up to current free limit)
+- Basic location text
+- Basic Property Details
+- Basic Amenities
+- Basic House Rules
+
+Make these PREMIUM ONLY:
+- Advanced Financial Details
+- Roommate Preferences
+- Exact map pin location
+- More detailed location data
+- Any advanced trust/transparency fields if needed
+- Higher photo limit if premium already exists in project logic
+
+B) Premium UI behavior
+- Premium-only sections must still appear in the form, but visually locked for free users
+- Add a small badge like “Premium”
+- Add short text explaining that this feature is available for Premium Owners
+- Add a clear CTA button like “Upgrade to Premium”
+- Free users should not be able to submit premium-only fields
+- Backend must also enforce this, not only frontend
+
+C) Map / localization feature
+Add a location section where user can:
+- Search for an address or area
+- See a map
+- Drop a pin on the map
+- Save latitude and longitude
+- Optionally save city / neighborhood / address string
+
+Rules:
+- For free users: allow only basic location text (city / area)
+- For premium users: enable full interactive map with exact pin location
+- On listing details page, show the map only if coordinates exist
+- Do not break existing listing creation flow
+
+D) Data model / backend
+- Add fields for latitude, longitude, address, city, neighborhood if missing
+- Validate premium-only fields on backend
+- Prevent free users from storing premium-only map pin coordinates if that is the selected business rule
+
+E) UX
+- Keep the dark modern design already used in the project
+- Locked premium sections should look clean, not broken
+- Make the map responsive on mobile and desktop
+
+F) Also update listing details page
+- Show free fields normally
+- Show premium fields when available
+- Show map when coordinates exist
+- Keep layout clean and trust-focused
+
+Deliverable:
+Implement the full feature end-to-end:
+- frontend form updates
+- premium lock states
+- backend validation
+- database fields if needed
+- listing details page map display
+- no regressions
