@@ -643,7 +643,7 @@ export default function ListingDetail() {
             )}
 
             {/* Exact Location Map */}
-            {listing.latitude && listing.longitude && (
+            {listing.latitude != null && listing.longitude != null && (
               <div className="bg-card rounded-3xl p-8 border border-border/50 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <MapPin className="w-5 h-5 text-primary" />

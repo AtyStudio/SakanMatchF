@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import { Search, Loader2, MapPin } from "lucide-react";
-
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -16,90 +16,65 @@ export interface LocationResult {
   address: string;
 }
 
-interface MapPickerProps {
-  value?: LocationResult | null;
-  onChange: (result: LocationResult | null) => void;
-  defaultCity?: string;
-}
-
 interface NominatimResult {
   lat: string;
   lon: string;
   display_name: string;
 }
 
-export function MapPicker({ value, onChange, defaultCity }: MapPickerProps) {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+interface ClickHandlerProps {
+  onMapClick: (lat: number, lng: number) => void;
+}
 
+function ClickHandler({ onMapClick }: ClickHandlerProps) {
+  useMapEvents({
+    click(e) {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+interface FlyToProps {
+  lat: number;
+  lng: number;
+  zoom: number;
+}
+
+function FlyTo({ lat, lng, zoom }: FlyToProps) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo([lat, lng], zoom, { duration: 0.8 });
+  }, [lat, lng, zoom, map]);
+  return null;
+}
+
+interface MapPickerProps {
+  value?: LocationResult | null;
+  onChange: (result: LocationResult | null) => void;
+  defaultCity?: string;
+}
+
+const DEFAULT_CENTER: [number, number] = [33.9716, -6.8498];
+const DEFAULT_ZOOM = 6;
+const PIN_ZOOM = 15;
+
+export function MapPicker({ value, onChange, defaultCity }: MapPickerProps) {
   const [searchQuery, setSearchQuery] = useState(value?.address || defaultCity || "");
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(
+    value ? { lat: value.lat, lng: value.lng, zoom: PIN_ZOOM } : null,
+  );
 
-  const DEFAULT_CENTER: [number, number] = [33.9716, -6.8498];
-  const DEFAULT_ZOOM = 6;
-  const PIN_ZOOM = 15;
-
-  const setPin = useCallback(
-    (lat: number, lng: number, address: string) => {
-      if (!mapRef.current) return;
-      if (!markerRef.current) {
-        markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
-        markerRef.current.on("dragend", () => {
-          const pos = markerRef.current!.getLatLng();
-          onChange({ lat: pos.lat, lng: pos.lng, address });
-        });
-      } else {
-        markerRef.current.setLatLng([lat, lng]);
-        markerRef.current.off("dragend");
-        markerRef.current.on("dragend", () => {
-          const pos = markerRef.current!.getLatLng();
-          onChange({ lat: pos.lat, lng: pos.lng, address });
-        });
-      }
-      mapRef.current.setView([lat, lng], PIN_ZOOM);
-      onChange({ lat, lng, address });
+  const handleMapClick = useCallback(
+    (lat: number, lng: number) => {
+      const addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      onChange({ lat, lng, address: addr });
+      setSearchQuery(addr);
     },
     [onChange],
   );
-
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-
-    const map = L.map(mapContainerRef.current, {
-      center: value ? [value.lat, value.lng] : DEFAULT_CENTER,
-      zoom: value ? PIN_ZOOM : DEFAULT_ZOOM,
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
-
-    map.on("click", (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
-      const addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      setPin(lat, lng, addr);
-      setSearchQuery(addr);
-    });
-
-    mapRef.current = map;
-
-    if (value) {
-      markerRef.current = L.marker([value.lat, value.lng], { draggable: true }).addTo(map);
-      markerRef.current.on("dragend", () => {
-        const pos = markerRef.current!.getLatLng();
-        onChange({ lat: pos.lat, lng: pos.lng, address: value.address });
-      });
-    }
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      markerRef.current = null;
-    };
-  }, []);
 
   const handleSearch = useCallback(async () => {
     const q = searchQuery.trim();
@@ -107,7 +82,7 @@ export function MapPicker({ value, onChange, defaultCity }: MapPickerProps) {
     setIsSearching(true);
     setSearchError("");
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ma`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
       const res = await fetch(url, { headers: { "Accept-Language": "en" } });
       if (!res.ok) throw new Error("Search failed");
       const data: NominatimResult[] = await res.json();
@@ -116,14 +91,16 @@ export function MapPicker({ value, onChange, defaultCity }: MapPickerProps) {
         return;
       }
       const { lat, lon, display_name } = data[0];
-      setPin(parseFloat(lat), parseFloat(lon), display_name);
+      const result: LocationResult = { lat: parseFloat(lat), lng: parseFloat(lon), address: display_name };
+      onChange(result);
       setSearchQuery(display_name);
+      setFlyTarget({ lat: result.lat, lng: result.lng, zoom: PIN_ZOOM });
     } catch {
       setSearchError("Search failed. Please try again.");
     } finally {
       setIsSearching(false);
     }
-  }, [searchQuery, setPin]);
+  }, [searchQuery, onChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -133,13 +110,10 @@ export function MapPicker({ value, onChange, defaultCity }: MapPickerProps) {
   };
 
   const handleClear = () => {
-    if (markerRef.current && mapRef.current) {
-      markerRef.current.remove();
-      markerRef.current = null;
-    }
     onChange(null);
     setSearchQuery("");
     setSearchError("");
+    setFlyTarget(null);
   };
 
   return (
@@ -164,7 +138,7 @@ export function MapPicker({ value, onChange, defaultCity }: MapPickerProps) {
         >
           {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
         </button>
-        {value && (
+        {value != null && (
           <button
             type="button"
             onClick={handleClear}
@@ -179,13 +153,34 @@ export function MapPicker({ value, onChange, defaultCity }: MapPickerProps) {
         <p className="text-xs text-destructive">{searchError}</p>
       )}
 
-      <div
-        ref={mapContainerRef}
-        className="w-full h-64 sm:h-80 rounded-2xl overflow-hidden border-2 border-border"
-        style={{ zIndex: 0 }}
-      />
+      <MapContainer
+        center={DEFAULT_CENTER}
+        zoom={DEFAULT_ZOOM}
+        style={{ height: "300px", width: "100%", borderRadius: "1rem", zIndex: 0 }}
+        scrollWheelZoom={false}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
+        />
+        <ClickHandler onMapClick={handleMapClick} />
+        {flyTarget && <FlyTo lat={flyTarget.lat} lng={flyTarget.lng} zoom={flyTarget.zoom} />}
+        {value != null && (
+          <Marker
+            position={[value.lat, value.lng]}
+            draggable
+            eventHandlers={{
+              dragend(e) {
+                const pos = (e.target as L.Marker).getLatLng();
+                onChange({ lat: pos.lat, lng: pos.lng, address: value.address });
+              },
+            }}
+          />
+        )}
+      </MapContainer>
 
-      {value ? (
+      {value != null ? (
         <div className="flex items-start gap-2 p-3 bg-primary/5 border border-primary/20 rounded-xl">
           <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="min-w-0">

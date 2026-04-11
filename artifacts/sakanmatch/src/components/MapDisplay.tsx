@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -15,47 +15,28 @@ interface MapDisplayProps {
 }
 
 export function MapDisplay({ lat, lng, address }: MapDisplayProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-
-    const map = L.map(containerRef.current, {
-      center: [lat, lng],
-      zoom: 15,
-      scrollWheelZoom: false,
-      zoomControl: true,
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
-
-    const marker = L.marker([lat, lng]).addTo(map);
-    if (address) {
-      marker.bindPopup(address);
-    }
-
-    mapRef.current = map;
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.setView([lat, lng], 15);
-  }, [lat, lng]);
-
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-64 sm:h-72 rounded-2xl overflow-hidden border border-border/50"
-      style={{ zIndex: 0 }}
-    />
+    <MapContainer
+      center={[lat, lng]}
+      zoom={15}
+      style={{ height: "280px", width: "100%", borderRadius: "1rem", zIndex: 0 }}
+      dragging={false}
+      touchZoom={false}
+      doubleClickZoom={false}
+      scrollWheelZoom={false}
+      boxZoom={false}
+      keyboard={false}
+      zoomControl={false}
+      attributionControl={true}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        maxZoom={19}
+      />
+      <Marker position={[lat, lng]}>
+        {address && <Popup>{address}</Popup>}
+      </Marker>
+    </MapContainer>
   );
 }
