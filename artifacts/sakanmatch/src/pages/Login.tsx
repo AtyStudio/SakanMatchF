@@ -16,7 +16,9 @@ export default function Login() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (user) setLocation("/dashboard");
+    if (user) {
+      setLocation(user.hasCompletedSurvey === false ? "/survey" : "/dashboard");
+    }
   }, [user, setLocation]);
   
   const loginMutation = useLogin({
@@ -24,7 +26,7 @@ export default function Login() {
       onSuccess: (data) => {
         login(data.token, data.user);
         toast({ title: t("auth.loginSuccess"), description: t("auth.loginSuccessDesc") });
-        setLocation("/dashboard");
+        setLocation(data.user.hasCompletedSurvey === false ? "/survey" : "/dashboard");
       },
       onError: (err: any) => {
         toast({ 

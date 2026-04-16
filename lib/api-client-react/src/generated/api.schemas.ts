@@ -57,6 +57,7 @@ export interface UserResponse {
   premiumActivatedAt?: string | null;
   premiumSource?: string | null;
   subscriptionStatus?: string | null;
+  hasCompletedSurvey?: boolean;
   createdAt?: string;
 }
 

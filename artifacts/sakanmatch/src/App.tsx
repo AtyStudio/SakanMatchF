@@ -20,6 +20,7 @@ import Profile from "@/pages/Profile";
 import PublicProfile from "@/pages/PublicProfile";
 import People from "@/pages/People";
 import Donate from "@/pages/Donate";
+import Survey from "@/pages/Survey";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/people" component={People} />
       <Route path="/donate" component={Donate} />
+      <Route path="/survey" component={Survey} />
       <Route component={NotFound} />
     </Switch>
   );

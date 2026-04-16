@@ -15,6 +15,7 @@ export const usersTable = pgTable("users", {
   subscriptionStatus: text("subscription_status"),
   subscriptionPlanId: text("subscription_plan_id"),
   lastPaymentAt: timestamp("last_payment_at"),
+  hasCompletedSurvey: boolean("has_completed_survey").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

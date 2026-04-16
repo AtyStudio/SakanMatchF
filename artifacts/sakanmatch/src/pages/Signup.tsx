@@ -20,7 +20,9 @@ export default function Signup() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (user) setLocation("/dashboard");
+    if (user) {
+      setLocation(user.hasCompletedSurvey === false ? "/survey" : "/dashboard");
+    }
   }, [user, setLocation]);
 
   const signupMutation = useSignup({
@@ -28,7 +30,7 @@ export default function Signup() {
       onSuccess: (data) => {
         login(data.token, data.user);
         toast({ title: t("auth.signupSuccess"), description: t("auth.signupSuccessDesc") });
-        setLocation("/dashboard");
+        setLocation("/survey");
       },
       onError: (err: any) => {
         toast({

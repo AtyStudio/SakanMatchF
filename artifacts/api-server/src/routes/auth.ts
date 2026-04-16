@@ -35,6 +35,7 @@ function formatUser(user: typeof usersTable.$inferSelect) {
     premiumActivatedAt: user.premiumActivatedAt?.toISOString() ?? null,
     premiumSource: user.premiumSource ?? null,
     subscriptionStatus: user.subscriptionStatus ?? null,
+    hasCompletedSurvey: user.hasCompletedSurvey,
     createdAt: user.createdAt.toISOString(),
   };
 }

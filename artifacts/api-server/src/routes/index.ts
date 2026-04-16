@@ -13,6 +13,7 @@ import profilesRouter from "./profiles";
 import matchesRouter from "./matches";
 import donationsRouter from "./donations";
 import chatRequestsRouter from "./chatRequests";
+import surveyRouter from "./survey";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use("/profile", profilesRouter);
 router.use("/matches", matchesRouter);
 router.use("/donations", donationsRouter);
 router.use("/chat-requests", chatRequestsRouter);
+router.use(surveyRouter);
 
 export default router;
