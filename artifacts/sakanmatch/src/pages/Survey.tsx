@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/Navbar";
@@ -43,12 +44,12 @@ const EMPTY: SurveyAnswers = {
 
 const TOTAL_STEPS = 6;
 
-function ProgressBar({ step }: { step: number }) {
+function ProgressBar({ step, label }: { step: number; label: string }) {
   const pct = Math.round(((step - 1) / (TOTAL_STEPS - 1)) * 100);
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-muted-foreground">Step {step} of {TOTAL_STEPS}</span>
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
         <span className="text-xs font-semibold text-primary">{pct}%</span>
       </div>
       <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -86,7 +87,7 @@ interface RadioOptionProps {
   emoji?: string;
 }
 
-function RadioOption({ value, selected, onSelect, label, emoji }: RadioOptionProps) {
+function RadioOption({ selected, onSelect, label, emoji }: RadioOptionProps) {
   return (
     <button
       type="button"
@@ -165,6 +166,7 @@ function isEmailValid(email: string) {
 }
 
 export default function Survey() {
+  const { t } = useTranslation();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -236,16 +238,16 @@ export default function Survey() {
               <Heart className="w-10 h-10 text-primary" fill="currentColor" />
             </div>
             <h1 className="text-3xl font-display font-bold text-foreground mb-3">
-              Thank you for your feedback ❤️
+              {t("survey.success.title")}
             </h1>
             <p className="text-muted-foreground mb-8">
-              Your responses help us build a better roommate platform. We appreciate your time!
+              {t("survey.success.subtitle")}
             </p>
             <button
               onClick={() => setLocation("/dashboard")}
               className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:-translate-y-0.5 transition-all shadow-lg shadow-primary/25"
             >
-              Explore SakanMatch →
+              {t("survey.success.cta")}
             </button>
           </div>
         </div>
@@ -258,59 +260,59 @@ export default function Survey() {
       <Navbar />
       <main className="max-w-xl mx-auto px-4 py-8 pb-24">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-display font-bold text-foreground mb-1">Quick Survey</h1>
-          <p className="text-sm text-muted-foreground">Help us build a better experience for you</p>
+          <h1 className="text-2xl font-display font-bold text-foreground mb-1">{t("survey.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("survey.subtitle")}</p>
         </div>
 
         <div className="bg-card rounded-3xl border border-border/50 shadow-sm p-6 sm:p-8">
-          <ProgressBar step={step} />
+          <ProgressBar step={step} label={t("survey.step", { step, total: TOTAL_STEPS })} />
 
           {/* Step 1: About You */}
           {step === 1 && (
             <div>
               <SectionTitle
                 icon={<User className="w-5 h-5" />}
-                title="About You"
-                subtitle="Tell us a little about yourself"
+                title={t("survey.step1.title")}
+                subtitle={t("survey.step1.subtitle")}
               />
               <div className="space-y-6">
                 <div>
-                  <QuestionLabel>What is your age group?</QuestionLabel>
+                  <QuestionLabel>{t("survey.step1.ageLabel")}</QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "under18", label: "Under 18", emoji: "🧒" },
-                      { value: "18-24", label: "18–24", emoji: "🎓" },
-                      { value: "25-34", label: "25–34", emoji: "💼" },
-                      { value: "35-44", label: "35–44", emoji: "🏠" },
-                      { value: "45+", label: "45+", emoji: "⭐" },
+                      { value: "under18", emoji: "🧒" },
+                      { value: "18-24", emoji: "🎓" },
+                      { value: "25-34", emoji: "💼" },
+                      { value: "35-44", emoji: "🏠" },
+                      { value: "45+", emoji: "⭐" },
                     ].map(opt => (
                       <RadioOption
                         key={opt.value}
                         value={opt.value}
                         selected={answers.age === opt.value}
                         onSelect={() => setField("age", opt.value)}
-                        label={opt.label}
+                        label={t(`survey.step1.age.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <QuestionLabel>What is your current status?</QuestionLabel>
+                  <QuestionLabel>{t("survey.step1.statusLabel")}</QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "student", label: "Student", emoji: "📚" },
-                      { value: "employed", label: "Employed", emoji: "👔" },
-                      { value: "self-employed", label: "Self-employed", emoji: "🚀" },
-                      { value: "unemployed", label: "Unemployed", emoji: "🔍" },
-                      { value: "other", label: "Other", emoji: "✨" },
+                      { value: "student", emoji: "📚" },
+                      { value: "employed", emoji: "👔" },
+                      { value: "self-employed", emoji: "🚀" },
+                      { value: "unemployed", emoji: "🔍" },
+                      { value: "other", emoji: "✨" },
                     ].map(opt => (
                       <RadioOption
                         key={opt.value}
                         value={opt.value}
                         selected={answers.status === opt.value}
                         onSelect={() => setField("status", opt.value)}
-                        label={opt.label}
+                        label={t(`survey.step1.status.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
@@ -325,16 +327,16 @@ export default function Survey() {
             <div>
               <SectionTitle
                 icon={<Home className="w-5 h-5" />}
-                title="Rental Experience"
-                subtitle="Tell us about your history with rental properties"
+                title={t("survey.step2.title")}
+                subtitle={t("survey.step2.subtitle")}
               />
               <div className="space-y-6">
                 <div>
-                  <QuestionLabel>Have you ever rented a property?</QuestionLabel>
+                  <QuestionLabel>{t("survey.step2.hasRentedLabel")}</QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "yes", label: "Yes", emoji: "✅" },
-                      { value: "no", label: "No", emoji: "❌" },
+                      { value: "yes", emoji: "✅" },
+                      { value: "no", emoji: "❌" },
                     ].map(opt => (
                       <RadioOption
                         key={opt.value}
@@ -344,7 +346,7 @@ export default function Survey() {
                           setField("hasRented", opt.value);
                           if (opt.value === "no") setField("rentalFrequency", "");
                         }}
-                        label={opt.label}
+                        label={t(`survey.step2.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
@@ -352,20 +354,20 @@ export default function Survey() {
                 </div>
                 {answers.hasRented === "yes" && (
                   <div>
-                    <QuestionLabel>How often have you rented?</QuestionLabel>
+                    <QuestionLabel>{t("survey.step2.frequencyLabel")}</QuestionLabel>
                     <div className="space-y-2">
                       {[
-                        { value: "rarely", label: "Rarely", emoji: "🌱" },
-                        { value: "1-2-times", label: "1–2 times per year", emoji: "📅" },
-                        { value: "several-times", label: "Several times per year", emoji: "🔄" },
-                        { value: "very-often", label: "Very often", emoji: "⚡" },
+                        { value: "rarely", emoji: "🌱" },
+                        { value: "1-2-times", emoji: "📅" },
+                        { value: "several-times", emoji: "🔄" },
+                        { value: "very-often", emoji: "⚡" },
                       ].map(opt => (
                         <RadioOption
                           key={opt.value}
                           value={opt.value}
                           selected={answers.rentalFrequency === opt.value}
                           onSelect={() => setField("rentalFrequency", opt.value)}
-                          label={opt.label}
+                          label={t(`survey.step2.frequency.${opt.value}`)}
                           emoji={opt.emoji}
                         />
                       ))}
@@ -381,47 +383,50 @@ export default function Survey() {
             <div>
               <SectionTitle
                 icon={<MapPin className="w-5 h-5" />}
-                title="Your Needs"
-                subtitle="Help us understand what you're looking for"
+                title={t("survey.step3.title")}
+                subtitle={t("survey.step3.subtitle")}
               />
               <div className="space-y-6">
                 <div>
-                  <QuestionLabel>What type of stay are you looking for?</QuestionLabel>
+                  <QuestionLabel>{t("survey.step3.stayTypeLabel")}</QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "vacation", label: "Vacation", emoji: "🏖️" },
-                      { value: "studies", label: "Studies", emoji: "🎓" },
-                      { value: "work", label: "Work", emoji: "💼" },
-                      { value: "long-term", label: "Long-term", emoji: "🏡" },
-                      { value: "other", label: "Other", emoji: "✨" },
+                      { value: "vacation", emoji: "🏖️" },
+                      { value: "studies", emoji: "🎓" },
+                      { value: "work", emoji: "💼" },
+                      { value: "long-term", emoji: "🏡" },
+                      { value: "other", emoji: "✨" },
                     ].map(opt => (
                       <RadioOption
                         key={opt.value}
                         value={opt.value}
                         selected={answers.stayType === opt.value}
                         onSelect={() => setField("stayType", opt.value)}
-                        label={opt.label}
+                        label={t(`survey.step3.stayType.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <QuestionLabel>What problems have you encountered with rentals? <span className="text-muted-foreground font-normal">(Select all that apply)</span></QuestionLabel>
+                  <QuestionLabel>
+                    {t("survey.step3.problemsLabel")}{" "}
+                    <span className="text-muted-foreground font-normal">{t("survey.selectAll")}</span>
+                  </QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "high-prices", label: "High prices", emoji: "💸" },
-                      { value: "lack-of-trust", label: "Lack of trust", emoji: "🔒" },
-                      { value: "poor-quality", label: "Poor quality", emoji: "😞" },
-                      { value: "booking-difficulty", label: "Booking difficulty", emoji: "📋" },
-                      { value: "other", label: "Other", emoji: "➕" },
+                      { value: "high-prices", emoji: "💸" },
+                      { value: "lack-of-trust", emoji: "🔒" },
+                      { value: "poor-quality", emoji: "😞" },
+                      { value: "booking-difficulty", emoji: "📋" },
+                      { value: "other", emoji: "➕" },
                     ].map(opt => (
                       <CheckboxOption
                         key={opt.value}
                         value={opt.value}
                         checked={answers.problems.includes(opt.value)}
                         onChange={() => toggleCheckbox("problems", opt.value)}
-                        label={opt.label}
+                        label={t(`survey.step3.problems.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
@@ -436,46 +441,49 @@ export default function Survey() {
             <div>
               <SectionTitle
                 icon={<Star className="w-5 h-5" />}
-                title="Your Priorities"
-                subtitle="What matters most to you when choosing a rental?"
+                title={t("survey.step4.title")}
+                subtitle={t("survey.step4.subtitle")}
               />
               <div className="space-y-6">
                 <div>
-                  <QuestionLabel>What are the most important criteria for you? <span className="text-muted-foreground font-normal">(Select all that apply)</span></QuestionLabel>
+                  <QuestionLabel>
+                    {t("survey.step4.criteriaLabel")}{" "}
+                    <span className="text-muted-foreground font-normal">{t("survey.selectAll")}</span>
+                  </QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "price", label: "Price", emoji: "💰" },
-                      { value: "location", label: "Location", emoji: "📍" },
-                      { value: "safety", label: "Safety", emoji: "🛡️" },
-                      { value: "cleanliness", label: "Cleanliness", emoji: "✨" },
-                      { value: "reviews", label: "Reviews & Ratings", emoji: "⭐" },
-                      { value: "ease-of-use", label: "Ease of use", emoji: "📱" },
+                      { value: "price", emoji: "💰" },
+                      { value: "location", emoji: "📍" },
+                      { value: "safety", emoji: "🛡️" },
+                      { value: "cleanliness", emoji: "✨" },
+                      { value: "reviews", emoji: "⭐" },
+                      { value: "ease-of-use", emoji: "📱" },
                     ].map(opt => (
                       <CheckboxOption
                         key={opt.value}
                         value={opt.value}
                         checked={answers.importantCriteria.includes(opt.value)}
                         onChange={() => toggleCheckbox("importantCriteria", opt.value)}
-                        label={opt.label}
+                        label={t(`survey.step4.criteria.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <QuestionLabel>Are you interested in using a new rental app?</QuestionLabel>
+                  <QuestionLabel>{t("survey.step4.interestedLabel")}</QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "yes", label: "Yes, definitely!", emoji: "🎉" },
-                      { value: "maybe", label: "Maybe, if it's good", emoji: "🤔" },
-                      { value: "no", label: "Not really", emoji: "😐" },
+                      { value: "yes", emoji: "🎉" },
+                      { value: "maybe", emoji: "🤔" },
+                      { value: "no", emoji: "😐" },
                     ].map(opt => (
                       <RadioOption
                         key={opt.value}
                         value={opt.value}
                         selected={answers.interestedInApp === opt.value}
                         onSelect={() => setField("interestedInApp", opt.value)}
-                        label={opt.label}
+                        label={t(`survey.step4.interested.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
@@ -490,46 +498,52 @@ export default function Survey() {
             <div>
               <SectionTitle
                 icon={<CreditCard className="w-5 h-5" />}
-                title="App Preferences"
-                subtitle="Share your preferences for the ideal rental app"
+                title={t("survey.step5.title")}
+                subtitle={t("survey.step5.subtitle")}
               />
               <div className="space-y-6">
                 <div>
-                  <QuestionLabel>What is your preferred payment method?</QuestionLabel>
+                  <QuestionLabel>{t("survey.step5.paymentLabel")}</QuestionLabel>
                   <div className="space-y-2">
                     {[
-                      { value: "online", label: "Online payment", emoji: "💳" },
-                      { value: "cash", label: "Cash", emoji: "💵" },
-                      { value: "both", label: "Both", emoji: "🔄" },
+                      { value: "online", emoji: "💳" },
+                      { value: "cash", emoji: "💵" },
+                      { value: "both", emoji: "🔄" },
                     ].map(opt => (
                       <RadioOption
                         key={opt.value}
                         value={opt.value}
                         selected={answers.preferredPayment === opt.value}
                         onSelect={() => setField("preferredPayment", opt.value)}
-                        label={opt.label}
+                        label={t(`survey.step5.payment.${opt.value}`)}
                         emoji={opt.emoji}
                       />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <QuestionLabel>What would you like to see in a rental app? <span className="text-muted-foreground font-normal">(optional)</span></QuestionLabel>
+                  <QuestionLabel>
+                    {t("survey.step5.wantToSeeLabel")}{" "}
+                    <span className="text-muted-foreground font-normal">{t("survey.optional")}</span>
+                  </QuestionLabel>
                   <textarea
                     value={answers.wantToSee}
                     onChange={e => setField("wantToSee", e.target.value)}
-                    placeholder="e.g. video tours, instant booking, verified profiles..."
+                    placeholder={t("survey.step5.wantToSeePlaceholder")}
                     rows={3}
                     maxLength={1000}
                     className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 text-sm resize-none"
                   />
                 </div>
                 <div>
-                  <QuestionLabel>Any other suggestions or ideas? <span className="text-muted-foreground font-normal">(optional)</span></QuestionLabel>
+                  <QuestionLabel>
+                    {t("survey.step5.suggestionsLabel")}{" "}
+                    <span className="text-muted-foreground font-normal">{t("survey.optional")}</span>
+                  </QuestionLabel>
                   <textarea
                     value={answers.suggestions}
                     onChange={e => setField("suggestions", e.target.value)}
-                    placeholder="Share any additional thoughts..."
+                    placeholder={t("survey.step5.suggestionsPlaceholder")}
                     rows={3}
                     maxLength={1000}
                     className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 text-sm resize-none"
@@ -544,11 +558,13 @@ export default function Survey() {
             <div>
               <SectionTitle
                 icon={<Mail className="w-5 h-5" />}
-                title="Stay in Touch"
-                subtitle="We'll keep you updated on SakanMatch news"
+                title={t("survey.step6.title")}
+                subtitle={t("survey.step6.subtitle")}
               />
               <div>
-                <QuestionLabel>Your email address <span className="text-destructive">*</span></QuestionLabel>
+                <QuestionLabel>
+                  {t("survey.step6.emailLabel")} <span className="text-destructive">*</span>
+                </QuestionLabel>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   <input
@@ -565,20 +581,20 @@ export default function Survey() {
                   />
                 </div>
                 {answers.email && !isEmailValid(answers.email) && (
-                  <p className="text-xs text-destructive mt-1.5">Please enter a valid email address</p>
+                  <p className="text-xs text-destructive mt-1.5">{t("survey.step6.emailError")}</p>
                 )}
                 <p className="text-xs text-muted-foreground mt-3">
-                  Your email is used to track your submission and keep you informed. We will not spam you.
+                  {t("survey.step6.emailHint")}
                 </p>
               </div>
 
               <div className="mt-8 p-4 bg-primary/5 border border-primary/20 rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-semibold text-foreground">Almost done!</p>
+                  <p className="text-sm font-semibold text-foreground">{t("survey.step6.almostDone")}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Review your responses and click <strong>Submit</strong> to share your feedback with us.
+                  {t("survey.step6.reviewHint")}
                 </p>
               </div>
             </div>
@@ -594,7 +610,7 @@ export default function Survey() {
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-border text-foreground font-semibold text-sm hover:border-primary/30 transition-all"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Back
+                  {t("survey.back")}
                 </button>
               )}
               <button
@@ -602,7 +618,7 @@ export default function Survey() {
                 onClick={handleSkip}
                 className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Skip for now
+                {t("survey.skip")}
               </button>
             </div>
 
@@ -613,7 +629,7 @@ export default function Survey() {
                 disabled={!canGoNext()}
                 className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:-translate-y-0.5 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
               >
-                Next
+                {t("survey.next")}
                 <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
@@ -624,9 +640,9 @@ export default function Survey() {
                 className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold text-sm hover:-translate-y-0.5 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
               >
                 {isSubmitting ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {t("survey.submitting")}</>
                 ) : (
-                  <><Check className="w-4 h-4" /> Submit</>
+                  <><Check className="w-4 h-4" /> {t("survey.submit")}</>
                 )}
               </button>
             )}

@@ -669,5 +669,118 @@
     "featured": "Featured",
     "viewArrow": "View →",
     "perMonth": "/mo"
+  },
+  "survey": {
+    "title": "Quick Survey",
+    "subtitle": "Help us build a better experience for you",
+    "step": "Step {{step}} of {{total}}",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip for now",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "selectAll": "(Select all that apply)",
+    "optional": "(optional)",
+    "step1": {
+      "title": "About You",
+      "subtitle": "Tell us a little about yourself",
+      "ageLabel": "What is your age group?",
+      "statusLabel": "What is your current status?",
+      "age": {
+        "under18": "Under 18",
+        "18-24": "18–24",
+        "25-34": "25–34",
+        "35-44": "35–44",
+        "45+": "45+"
+      },
+      "status": {
+        "student": "Student",
+        "employed": "Employed",
+        "self-employed": "Self-employed",
+        "unemployed": "Unemployed",
+        "other": "Other"
+      }
+    },
+    "step2": {
+      "title": "Rental Experience",
+      "subtitle": "Tell us about your history with rental properties",
+      "hasRentedLabel": "Have you ever rented a property?",
+      "frequencyLabel": "How often have you rented?",
+      "yes": "Yes",
+      "no": "No",
+      "frequency": {
+        "rarely": "Rarely",
+        "1-2-times": "1–2 times per year",
+        "several-times": "Several times per year",
+        "very-often": "Very often"
+      }
+    },
+    "step3": {
+      "title": "Your Needs",
+      "subtitle": "Help us understand what you're looking for",
+      "stayTypeLabel": "What type of stay are you looking for?",
+      "problemsLabel": "What problems have you encountered with rentals?",
+      "stayType": {
+        "vacation": "Vacation",
+        "studies": "Studies",
+        "work": "Work",
+        "long-term": "Long-term",
+        "other": "Other"
+      },
+      "problems": {
+        "high-prices": "High prices",
+        "lack-of-trust": "Lack of trust",
+        "poor-quality": "Poor quality",
+        "booking-difficulty": "Booking difficulty",
+        "other": "Other"
+      }
+    },
+    "step4": {
+      "title": "Your Priorities",
+      "subtitle": "What matters most to you when choosing a rental?",
+      "criteriaLabel": "What are the most important criteria for you?",
+      "interestedLabel": "Are you interested in using a new rental app?",
+      "criteria": {
+        "price": "Price",
+        "location": "Location",
+        "safety": "Safety",
+        "cleanliness": "Cleanliness",
+        "reviews": "Reviews & Ratings",
+        "ease-of-use": "Ease of use"
+      },
+      "interested": {
+        "yes": "Yes, definitely!",
+        "maybe": "Maybe, if it's good",
+        "no": "Not really"
+      }
+    },
+    "step5": {
+      "title": "App Preferences",
+      "subtitle": "Share your preferences for the ideal rental app",
+      "paymentLabel": "What is your preferred payment method?",
+      "wantToSeeLabel": "What would you like to see in a rental app?",
+      "wantToSeePlaceholder": "e.g. video tours, instant booking, verified profiles...",
+      "suggestionsLabel": "Any other suggestions or ideas?",
+      "suggestionsPlaceholder": "Share any additional thoughts...",
+      "payment": {
+        "online": "Online payment",
+        "cash": "Cash",
+        "both": "Both"
+      }
+    },
+    "step6": {
+      "title": "Stay in Touch",
+      "subtitle": "We'll keep you updated on SakanMatch news",
+      "emailLabel": "Your email address",
+      "emailError": "Please enter a valid email address",
+      "emailHint": "Your email is used to track your submission and keep you informed. We will not spam you.",
+      "almostDone": "Almost done!",
+      "reviewHint": "Review your responses and click Submit to share your feedback with us."
+    },
+    "success": {
+      "title": "Thank you for your feedback ❤️",
+      "subtitle": "Your responses help us build a better roommate platform. We appreciate your time!",
+      "cta": "Explore SakanMatch →"
+    }
   }
 }

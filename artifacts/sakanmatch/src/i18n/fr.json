@@ -669,5 +669,118 @@
     "featured": "En vedette",
     "viewArrow": "Voir →",
     "perMonth": "/mois"
+  },
+  "survey": {
+    "title": "Sondage rapide",
+    "subtitle": "Aidez-nous à créer une meilleure expérience pour vous",
+    "step": "Étape {{step}} sur {{total}}",
+    "back": "Retour",
+    "next": "Suivant",
+    "skip": "Passer pour l'instant",
+    "submit": "Envoyer",
+    "submitting": "Envoi en cours...",
+    "selectAll": "(Sélectionnez tout ce qui s'applique)",
+    "optional": "(optionnel)",
+    "step1": {
+      "title": "À propos de vous",
+      "subtitle": "Dites-nous quelques mots sur vous",
+      "ageLabel": "Quelle est votre tranche d'âge ?",
+      "statusLabel": "Quel est votre statut actuel ?",
+      "age": {
+        "under18": "Moins de 18",
+        "18-24": "18–24",
+        "25-34": "25–34",
+        "35-44": "35–44",
+        "45+": "45+"
+      },
+      "status": {
+        "student": "Étudiant(e)",
+        "employed": "Employé(e)",
+        "self-employed": "Indépendant(e)",
+        "unemployed": "Sans emploi",
+        "other": "Autre"
+      }
+    },
+    "step2": {
+      "title": "Expérience locative",
+      "subtitle": "Parlez-nous de votre expérience avec les locations",
+      "hasRentedLabel": "Avez-vous déjà loué un logement ?",
+      "frequencyLabel": "À quelle fréquence avez-vous loué ?",
+      "yes": "Oui",
+      "no": "Non",
+      "frequency": {
+        "rarely": "Rarement",
+        "1-2-times": "1–2 fois par an",
+        "several-times": "Plusieurs fois par an",
+        "very-often": "Très souvent"
+      }
+    },
+    "step3": {
+      "title": "Vos besoins",
+      "subtitle": "Aidez-nous à comprendre ce que vous recherchez",
+      "stayTypeLabel": "Quel type de séjour recherchez-vous ?",
+      "problemsLabel": "Quels problèmes avez-vous rencontrés avec les locations ?",
+      "stayType": {
+        "vacation": "Vacances",
+        "studies": "Études",
+        "work": "Travail",
+        "long-term": "Long terme",
+        "other": "Autre"
+      },
+      "problems": {
+        "high-prices": "Prix élevés",
+        "lack-of-trust": "Manque de confiance",
+        "poor-quality": "Mauvaise qualité",
+        "booking-difficulty": "Difficulté de réservation",
+        "other": "Autre"
+      }
+    },
+    "step4": {
+      "title": "Vos priorités",
+      "subtitle": "Qu'est-ce qui compte le plus pour vous lors du choix d'une location ?",
+      "criteriaLabel": "Quels sont les critères les plus importants pour vous ?",
+      "interestedLabel": "Seriez-vous intéressé(e) par une nouvelle application de location ?",
+      "criteria": {
+        "price": "Prix",
+        "location": "Emplacement",
+        "safety": "Sécurité",
+        "cleanliness": "Propreté",
+        "reviews": "Avis & Notes",
+        "ease-of-use": "Facilité d'utilisation"
+      },
+      "interested": {
+        "yes": "Oui, absolument !",
+        "maybe": "Peut-être, si elle est bonne",
+        "no": "Pas vraiment"
+      }
+    },
+    "step5": {
+      "title": "Préférences de l'application",
+      "subtitle": "Partagez vos préférences pour l'application de location idéale",
+      "paymentLabel": "Quel est votre mode de paiement préféré ?",
+      "wantToSeeLabel": "Que souhaiteriez-vous voir dans une application de location ?",
+      "wantToSeePlaceholder": "ex. visites vidéo, réservation instantanée, profils vérifiés...",
+      "suggestionsLabel": "Des suggestions ou idées supplémentaires ?",
+      "suggestionsPlaceholder": "Partagez vos pensées supplémentaires...",
+      "payment": {
+        "online": "Paiement en ligne",
+        "cash": "Espèces",
+        "both": "Les deux"
+      }
+    },
+    "step6": {
+      "title": "Restez en contact",
+      "subtitle": "Nous vous tiendrons informé(e) des actualités de SakanMatch",
+      "emailLabel": "Votre adresse e-mail",
+      "emailError": "Veuillez saisir une adresse e-mail valide",
+      "emailHint": "Votre e-mail est utilisé pour suivre votre soumission et vous tenir informé(e). Nous ne vous enverrons pas de spam.",
+      "almostDone": "Presque terminé !",
+      "reviewHint": "Vérifiez vos réponses et cliquez sur Envoyer pour partager vos commentaires avec nous."
+    },
+    "success": {
+      "title": "Merci pour vos commentaires ❤️",
+      "subtitle": "Vos réponses nous aident à créer une meilleure plateforme de colocation. Nous apprécions votre temps !",
+      "cta": "Explorer SakanMatch →"
+    }
   }
 }
