@@ -211,15 +211,25 @@ export default function Survey() {
     if (!canGoNext()) return;
     setIsSubmitting(true);
     try {
+      const payload: Record<string, unknown> = { ...answers };
+      if (!payload.rentalFrequency) delete payload.rentalFrequency;
+      if (!payload.wantToSee) delete payload.wantToSee;
+      if (!payload.suggestions) delete payload.suggestions;
+
       const res = await fetch("/api/survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(answers),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Submission failed");
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error("Survey submission failed:", res.status, errBody);
+        throw new Error("Submission failed");
+      }
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       setSubmitted(true);
-    } catch {
+    } catch (err) {
+      console.error(err);
       setIsSubmitting(false);
     }
   }
