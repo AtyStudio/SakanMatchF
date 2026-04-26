@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, userProfilesTable, userPreferencesTable, usersTable } from "@workspace/db";
 import { eq, ne } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
+import { computeMatchScore, type MatchScoreBreakdown } from "../services/matching";
 
 const router = Router();
 
@@ -32,176 +33,8 @@ interface MatchResult {
     genderPref: string | null;
   };
   score: number;
+  scoreBreakdown: MatchScoreBreakdown;
   matchReasons: string[];
-}
-
-function computeScore(
-  currentProfile: typeof userProfilesTable.$inferSelect | null,
-  currentPrefs: typeof userPreferencesTable.$inferSelect | null,
-  otherProfile: typeof userProfilesTable.$inferSelect | null,
-  otherPrefs: typeof userPreferencesTable.$inferSelect | null,
-): { score: number; matchReasons: string[] } {
-  let score = 0;
-  const maxScore = 100;
-  const reasons: string[] = [];
-
-  const weights = {
-    city: 20,
-    budget: 20,
-    lifestyle: 15,
-    smoking: 10,
-    cleanliness: 10,
-    sleepSchedule: 8,
-    noiseTolerance: 7,
-    guestPreference: 4,
-    petPreference: 4,
-    genderPref: 2,
-  };
-
-  if (currentPrefs?.city && otherPrefs?.city) {
-    if (currentPrefs.city.toLowerCase() === otherPrefs.city.toLowerCase()) {
-      score += weights.city;
-      reasons.push(`Same city (${currentPrefs.city})`);
-    }
-  } else if (!currentPrefs?.city && !otherPrefs?.city) {
-    score += weights.city * 0.5;
-  }
-
-  const myMin = currentPrefs?.budgetMin ? parseFloat(currentPrefs.budgetMin) : null;
-  const myMax = currentPrefs?.budgetMax ? parseFloat(currentPrefs.budgetMax) : null;
-  const theirMin = otherPrefs?.budgetMin ? parseFloat(otherPrefs.budgetMin) : null;
-  const theirMax = otherPrefs?.budgetMax ? parseFloat(otherPrefs.budgetMax) : null;
-
-  if (myMin !== null && myMax !== null && theirMin !== null && theirMax !== null) {
-    const overlapMin = Math.max(myMin, theirMin);
-    const overlapMax = Math.min(myMax, theirMax);
-    if (overlapMin <= overlapMax) {
-      const myRange = myMax - myMin || 1;
-      const theirRange = theirMax - theirMin || 1;
-      const overlapRange = overlapMax - overlapMin;
-      const ratio = overlapRange / Math.max(myRange, theirRange);
-      const budgetScore = Math.round(weights.budget * Math.min(ratio + 0.3, 1));
-      score += budgetScore;
-      reasons.push("Similar budget range");
-    }
-  } else if (!myMin && !myMax && !theirMin && !theirMax) {
-    score += weights.budget * 0.5;
-  }
-
-  if (currentPrefs?.lifestyle && otherPrefs?.lifestyle) {
-    if (
-      currentPrefs.lifestyle === otherPrefs.lifestyle ||
-      currentPrefs.lifestyle === "any" ||
-      otherPrefs.lifestyle === "any"
-    ) {
-      score += weights.lifestyle;
-      if (currentPrefs.lifestyle === otherPrefs.lifestyle && currentPrefs.lifestyle !== "any") {
-        reasons.push(`Both prefer ${currentPrefs.lifestyle} lifestyle`);
-      } else {
-        reasons.push("Compatible lifestyle preferences");
-      }
-    }
-  }
-
-  if (currentPrefs?.smoking && otherPrefs?.smoking) {
-    if (
-      currentPrefs.smoking === otherPrefs.smoking ||
-      currentPrefs.smoking === "any" ||
-      otherPrefs.smoking === "any"
-    ) {
-      score += weights.smoking;
-      if (currentPrefs.smoking === otherPrefs.smoking && currentPrefs.smoking !== "any") {
-        reasons.push(currentPrefs.smoking === "no" ? "Both non-smoking" : "Both ok with smoking");
-      }
-    }
-  }
-
-  if (currentProfile?.cleanlinessLevel && otherProfile?.cleanlinessLevel) {
-    const levels = ["relaxed", "moderate", "clean", "very_clean"];
-    const myIdx = levels.indexOf(currentProfile.cleanlinessLevel);
-    const theirIdx = levels.indexOf(otherProfile.cleanlinessLevel);
-    const diff = Math.abs(myIdx - theirIdx);
-    if (diff === 0) {
-      score += weights.cleanliness;
-      reasons.push("Same cleanliness standard");
-    } else if (diff === 1) {
-      score += weights.cleanliness * 0.6;
-    }
-  }
-
-  if (currentProfile?.sleepSchedule && otherProfile?.sleepSchedule) {
-    if (
-      currentProfile.sleepSchedule === otherProfile.sleepSchedule ||
-      currentProfile.sleepSchedule === "flexible" ||
-      otherProfile.sleepSchedule === "flexible"
-    ) {
-      score += weights.sleepSchedule;
-      if (currentProfile.sleepSchedule === otherProfile.sleepSchedule && currentProfile.sleepSchedule !== "flexible") {
-        reasons.push(`Both ${currentProfile.sleepSchedule === "early_bird" ? "early risers" : "night owls"}`);
-      }
-    }
-  }
-
-  if (currentProfile?.noiseTolerance && otherProfile?.noiseTolerance) {
-    if (currentProfile.noiseTolerance === otherProfile.noiseTolerance) {
-      score += weights.noiseTolerance;
-      reasons.push(`Same noise tolerance (${currentProfile.noiseTolerance})`);
-    } else if (
-      (currentProfile.noiseTolerance === "moderate") ||
-      (otherProfile.noiseTolerance === "moderate")
-    ) {
-      score += weights.noiseTolerance * 0.5;
-    }
-  }
-
-  if (currentProfile?.guestPreference && otherProfile?.guestPreference) {
-    if (currentProfile.guestPreference === otherProfile.guestPreference) {
-      score += weights.guestPreference;
-      reasons.push(`Both prefer guests ${currentProfile.guestPreference}`);
-    }
-  }
-
-  if (currentProfile?.petPreference && otherProfile?.petPreference) {
-    if (
-      currentProfile.petPreference === otherProfile.petPreference ||
-      currentProfile.petPreference === "no_preference" ||
-      otherProfile.petPreference === "no_preference"
-    ) {
-      score += weights.petPreference;
-      if (currentProfile.petPreference === otherProfile.petPreference && currentProfile.petPreference !== "no_preference") {
-        reasons.push(currentProfile.petPreference === "love_pets" ? "Both love pets" : "Neither wants pets");
-      }
-    }
-  }
-
-  if (currentPrefs?.genderPref && otherPrefs?.genderPref) {
-    const myGenderPref = currentPrefs.genderPref;
-    const theirGenderPref = otherPrefs.genderPref;
-    const myGender = currentProfile?.gender;
-    const theirGender = otherProfile?.gender;
-
-    const iCompatible =
-      myGenderPref === "any" ||
-      (myGender && myGenderPref === myGender) ||
-      !theirGender ||
-      theirGenderPref === myGenderPref;
-
-    const theyCompatible =
-      theirGenderPref === "any" ||
-      (theirGender && theirGenderPref === theirGender) ||
-      !myGender;
-
-    if (iCompatible && theyCompatible) {
-      score += weights.genderPref;
-    }
-  }
-
-  const finalScore = Math.min(Math.round((score / maxScore) * 100), 100);
-  if (reasons.length === 0 && finalScore > 30) {
-    reasons.push("Compatible roommate preferences");
-  }
-
-  return { score: finalScore, matchReasons: reasons };
 }
 
 router.get("/people", requireAuth, async (req: AuthRequest, res) => {
@@ -273,7 +106,7 @@ router.get("/people", requireAuth, async (req: AuthRequest, res) => {
         continue;
       }
 
-      const { score, matchReasons } = computeScore(
+      const { score, breakdown, matchReasons } = computeMatchScore(
         currentProfile || null,
         currentPrefs || null,
         otherProfile,
@@ -307,6 +140,7 @@ router.get("/people", requireAuth, async (req: AuthRequest, res) => {
           genderPref: otherPrefs?.genderPref ?? null,
         },
         score,
+        scoreBreakdown: breakdown,
         matchReasons,
       });
     }
