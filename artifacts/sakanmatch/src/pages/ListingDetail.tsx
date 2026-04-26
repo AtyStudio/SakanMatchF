@@ -630,7 +630,7 @@ export default function ListingDetail() {
                   <div className="text-center py-4">
                     <Sparkles className="w-8 h-8 text-primary/40 mx-auto mb-3" />
                     <p className="text-muted-foreground text-sm mb-4">{t("listings.detail.matchNoPreferences")}</p>
-                    <Link href="/preferences"
+                    <Link href="/profile/preferences"
                       className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
                       {t("listings.detail.matchSetPreferences")}
                     </Link>
