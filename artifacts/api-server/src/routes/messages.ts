@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, messagesTable, usersTable, chatRequestsTable } from "@workspace/db";
-import { eq, and, or, desc } from "drizzle-orm";
+import { db, messagesTable, usersTable, chatRequestsTable, listingsTable } from "@workspace/db";
+import { eq, and, or, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
 
@@ -158,31 +158,92 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
-    if (!listingId) {
-      const [accepted] = await db
-        .select({ id: chatRequestsTable.id })
-        .from(chatRequestsTable)
-        .where(
+    const [existingReq] = await db
+      .select({ id: chatRequestsTable.id, status: chatRequestsTable.status })
+      .from(chatRequestsTable)
+      .where(
+        or(
           and(
-            eq(chatRequestsTable.status, "accepted"),
-            or(
-              and(
-                eq(chatRequestsTable.senderId, senderId),
-                eq(chatRequestsTable.receiverId, receiverId)
-              ),
-              and(
-                eq(chatRequestsTable.senderId, receiverId),
-                eq(chatRequestsTable.receiverId, senderId)
-              )
-            )
+            eq(chatRequestsTable.senderId, senderId),
+            eq(chatRequestsTable.receiverId, receiverId)
+          ),
+          and(
+            eq(chatRequestsTable.senderId, receiverId),
+            eq(chatRequestsTable.receiverId, senderId)
           )
         )
-        .limit(1);
+      )
+      .limit(1);
 
-      if (!accepted) {
-        res.status(403).json({ error: "Chat request required", message: "You need an accepted chat request to message this user" });
-        return;
+    let isAuthorized = existingReq?.status === "accepted";
+
+    if (!isAuthorized) {
+      let listingOwnerMatches = false;
+      if (listingId) {
+        const [listing] = await db
+          .select({ ownerId: listingsTable.ownerId })
+          .from(listingsTable)
+          .where(eq(listingsTable.id, listingId))
+          .limit(1);
+        listingOwnerMatches = !!listing && listing.ownerId === receiverId;
       }
+
+      const otherSentMessage = !listingOwnerMatches
+        ? await (async () => {
+            const [m] = await db
+              .select({ id: messagesTable.id })
+              .from(messagesTable)
+              .where(
+                and(
+                  eq(messagesTable.senderId, receiverId),
+                  eq(messagesTable.receiverId, senderId)
+                )
+              )
+              .limit(1);
+            return !!m;
+          })()
+        : false;
+
+      if (listingOwnerMatches || otherSentMessage) {
+        if (existingReq) {
+          if (existingReq.status !== "accepted") {
+            await db
+              .update(chatRequestsTable)
+              .set({ status: "accepted", updatedAt: new Date() })
+              .where(eq(chatRequestsTable.id, existingReq.id));
+          }
+        } else {
+          try {
+            await db
+              .insert(chatRequestsTable)
+              .values({ senderId, receiverId, status: "accepted" });
+          } catch (e: unknown) {
+            const pgErr = e as { code?: string };
+            if (pgErr?.code !== "23505") throw e;
+            await db
+              .update(chatRequestsTable)
+              .set({ status: "accepted", updatedAt: new Date() })
+              .where(
+                and(
+                  eq(
+                    sql`LEAST(${chatRequestsTable.senderId}, ${chatRequestsTable.receiverId})`,
+                    Math.min(senderId, receiverId)
+                  ),
+                  eq(
+                    sql`GREATEST(${chatRequestsTable.senderId}, ${chatRequestsTable.receiverId})`,
+                    Math.max(senderId, receiverId)
+                  )
+                )
+              );
+          }
+        }
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      res.status(403).json({ error: "Chat request required", message: "You need an accepted chat request to message this user" });
+      return;
     }
 
     const [msg] = await db
