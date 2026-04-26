@@ -344,7 +344,7 @@ export default function NewListing() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">{t("listings.monthlyRent")}</label>
-                <input type="number" required min="0" step="100" value={price} onChange={e => setPrice(e.target.value)}
+                <input type="number" required min="0" step="1" value={price} onChange={e => setPrice(e.target.value)}
                   placeholder={t("listings.pricePh")} className={inputClass} />
               </div>
             </div>
