@@ -1,7 +1,8 @@
-import type { userProfilesTable, userPreferencesTable } from "@workspace/db";
+import type { userProfilesTable, userPreferencesTable, listingsTable } from "@workspace/db";
 
 type Profile = typeof userProfilesTable.$inferSelect;
 type Prefs = typeof userPreferencesTable.$inferSelect;
+type Listing = typeof listingsTable.$inferSelect;
 
 export interface MatchScoreBreakdown {
   budget: number;
@@ -234,6 +235,209 @@ export function computeMatchScore(
 
   if (reasons.length === 0 && score > 30) {
     reasons.push("Compatible roommate preferences");
+  }
+
+  return { score, breakdown, matchReasons: reasons };
+}
+
+export interface ListingMatchBreakdown {
+  city: number;
+  budget: number;
+  lifestyle: number;
+  smoking: number;
+  amenities: number;
+}
+
+export interface ListingMatchResult {
+  score: number;
+  breakdown: ListingMatchBreakdown;
+  matchReasons: string[];
+}
+
+const LISTING_WEIGHTS = {
+  city: 0.3,
+  budget: 0.35,
+  lifestyle: 0.1,
+  smoking: 0.1,
+  amenities: 0.15,
+} as const;
+
+function scoreListingCity(
+  prefs: Prefs | null,
+  listing: Pick<Listing, "city">,
+): { score: number; reason: string | null } {
+  const prefCity = prefs?.city?.trim();
+  const listingCity = listing.city?.trim();
+  if (!prefCity) return { score: NEUTRAL, reason: null };
+  if (!listingCity) return { score: NEUTRAL, reason: null };
+  const a = prefCity.toLowerCase();
+  const b = listingCity.toLowerCase();
+  if (a === b) return { score: 100, reason: `Same city (${listingCity})` };
+  if (b.includes(a) || a.includes(b)) {
+    return { score: 70, reason: `Nearby area (${listingCity})` };
+  }
+  return { score: 0, reason: null };
+}
+
+function scoreListingBudget(
+  prefs: Prefs | null,
+  listing: Pick<Listing, "price">,
+): { score: number; reason: string | null } {
+  const min = parseNum(prefs?.budgetMin);
+  const max = parseNum(prefs?.budgetMax);
+  const price = parseNum(listing.price);
+  if (price === null) return { score: NEUTRAL, reason: null };
+  if (min === null && max === null) return { score: NEUTRAL, reason: null };
+
+  const lo = min ?? 0;
+  const hi = max ?? Number.POSITIVE_INFINITY;
+
+  if (price >= lo && price <= hi) {
+    return { score: 100, reason: "Within your budget" };
+  }
+  if (max !== null && price > max && max > 0) {
+    const over = (price - max) / max;
+    if (over <= 0.2) {
+      return { score: Math.max(0, Math.round(100 - over * 250)), reason: null };
+    }
+  }
+  if (min !== null && price < min && min > 0) {
+    const under = (min - price) / min;
+    if (under <= 0.2) return { score: 80, reason: "Cheaper than your minimum budget" };
+  }
+  return { score: 0, reason: null };
+}
+
+function scoreListingLifestyle(
+  prefs: Prefs | null,
+  listing: Pick<Listing, "quietHours" | "guestsAllowed" | "smokingAllowed">,
+): { score: number; reason: string | null } {
+  const lifestyle = prefs?.lifestyle ?? null;
+  if (!lifestyle) return { score: NEUTRAL, reason: null };
+  if (lifestyle === "any") return { score: 100, reason: null };
+  if (lifestyle === "quiet") {
+    if (listing.quietHours) {
+      return { score: 100, reason: "Quiet hours match your lifestyle" };
+    }
+    if (listing.guestsAllowed === false || listing.smokingAllowed === false) {
+      return { score: 75, reason: null };
+    }
+    return { score: NEUTRAL, reason: null };
+  }
+  if (lifestyle === "social") {
+    if (listing.guestsAllowed === true) {
+      return { score: 100, reason: "Guests welcome — fits a social lifestyle" };
+    }
+    if (listing.guestsAllowed === false) {
+      return { score: 0, reason: null };
+    }
+    return { score: NEUTRAL, reason: null };
+  }
+  return { score: NEUTRAL, reason: null };
+}
+
+function scoreListingSmoking(
+  prefs: Prefs | null,
+  listing: Pick<Listing, "smokingAllowed">,
+): { score: number; reason: string | null } {
+  const pref = prefs?.smoking ?? null;
+  if (!pref) return { score: NEUTRAL, reason: null };
+  if (pref === "any") return { score: 100, reason: null };
+  if (listing.smokingAllowed === null || listing.smokingAllowed === undefined) {
+    return { score: NEUTRAL, reason: null };
+  }
+  if (pref === "yes" && listing.smokingAllowed === true) {
+    return { score: 100, reason: "Smoking allowed" };
+  }
+  if (pref === "no" && listing.smokingAllowed === false) {
+    return { score: 100, reason: "Non-smoking property" };
+  }
+  return { score: 0, reason: null };
+}
+
+function scoreListingAmenities(
+  prefs: Prefs | null,
+  listing: Pick<Listing, "amenities">,
+): { score: number; reason: string | null } {
+  const wanted = prefs?.wantedAmenities ?? [];
+  if (wanted.length === 0) return { score: NEUTRAL, reason: null };
+  const have = listing.amenities ?? [];
+  if (have.length === 0) return { score: 0, reason: null };
+  const matched = wanted.filter((a: string) => have.includes(a));
+  const ratio = matched.length / wanted.length;
+  const score = Math.round(ratio * 100);
+  let reason: string | null = null;
+  if (matched.length === wanted.length) {
+    reason = "Has all amenities you want";
+  } else if (matched.length > 0) {
+    reason = `Has ${matched.length} of ${wanted.length} amenities you want`;
+  }
+  return { score, reason };
+}
+
+/**
+ * Returns true when the user's preferences contain at least one signal that
+ * meaningfully constrains the match. Prefs filled only with default "any"
+ * values do not count — there is nothing to score against.
+ */
+export function hasUsefulPreferences(prefs: Prefs | null): boolean {
+  if (!prefs) return false;
+  return Boolean(
+    (prefs.city && prefs.city.trim()) ||
+      prefs.budgetMin ||
+      prefs.budgetMax ||
+      (prefs.lifestyle && prefs.lifestyle !== "any") ||
+      (prefs.smoking && prefs.smoking !== "any") ||
+      (prefs.wantedAmenities && prefs.wantedAmenities.length > 0),
+  );
+}
+
+/**
+ * Compute an apartment-listing match score (0-100) for a user's preferences.
+ *
+ * Pure function — same inputs always produce the same output. Missing
+ * prefs/fields degrade gracefully to a neutral 50 sub-score so absent data
+ * does not unfairly penalize a listing.
+ *
+ * Weights: budget 35%, city 30%, amenities 15%, lifestyle 10%, smoking 10%.
+ *
+ * Used by both the Dashboard "Top Matches" rail and the Listing Detail page,
+ * which previously rolled their own ad-hoc scoring functions with different
+ * weights — meaning the same listing could appear with two different scores.
+ */
+export function computeListingMatchScore(
+  prefs: Prefs | null,
+  listing: Pick<
+    Listing,
+    "city" | "price" | "amenities" | "smokingAllowed" | "guestsAllowed" | "quietHours"
+  >,
+): ListingMatchResult {
+  const city = scoreListingCity(prefs, listing);
+  const budget = scoreListingBudget(prefs, listing);
+  const lifestyle = scoreListingLifestyle(prefs, listing);
+  const smoking = scoreListingSmoking(prefs, listing);
+  const amenities = scoreListingAmenities(prefs, listing);
+
+  const breakdown: ListingMatchBreakdown = {
+    city: clamp(Math.round(city.score)),
+    budget: clamp(Math.round(budget.score)),
+    lifestyle: clamp(Math.round(lifestyle.score)),
+    smoking: clamp(Math.round(smoking.score)),
+    amenities: clamp(Math.round(amenities.score)),
+  };
+
+  const weighted =
+    breakdown.city * LISTING_WEIGHTS.city +
+    breakdown.budget * LISTING_WEIGHTS.budget +
+    breakdown.lifestyle * LISTING_WEIGHTS.lifestyle +
+    breakdown.smoking * LISTING_WEIGHTS.smoking +
+    breakdown.amenities * LISTING_WEIGHTS.amenities;
+
+  const score = clamp(Math.round(weighted));
+
+  const reasons: string[] = [];
+  for (const r of [city.reason, budget.reason, amenities.reason, lifestyle.reason, smoking.reason]) {
+    if (r) reasons.push(r);
   }
 
   return { score, breakdown, matchReasons: reasons };

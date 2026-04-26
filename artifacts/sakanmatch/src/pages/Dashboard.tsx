@@ -3,9 +3,8 @@ import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
 import { Link, useLocation } from "wouter";
 import { useGetMyListings, useDeleteListing } from "@workspace/api-client-react";
-import { useGetListings } from "@workspace/api-client-react";
 import { ListingCard } from "@/components/ListingCard";
-import { api, type RequestItem, type Conversation, type FavoriteListing, type PreferencesResponse, type PeopleMatchResult, type FullProfileResponse } from "@/lib/api";
+import { api, type RequestItem, type Conversation, type FavoriteListing, type PreferencesResponse, type PeopleMatchResult, type FullProfileResponse, type ListingMatchEntry } from "@/lib/api";
 import {
   PlusCircle, Crown, Trash2, Home, User, Shield, Search,
   Heart, MessageSquare, Send, Star, Sliders, CheckCircle, XCircle, Clock, ArrowRight,
@@ -32,21 +31,6 @@ function computeCompletion(profile: FullProfileResponse): number {
   return Math.round((filled / total) * 100);
 }
 
-function scoreMatch(listing: ListingResponse, prefs: PreferencesResponse): number {
-  let score = 0;
-  if (prefs.city && listing.city.toLowerCase() === prefs.city.toLowerCase()) score += 35;
-  const price = listing.price;
-  const min = prefs.budgetMin ? parseFloat(prefs.budgetMin) : null;
-  const max = prefs.budgetMax ? parseFloat(prefs.budgetMax) : null;
-  if (min !== null && max !== null && price >= min && price <= max) score += 35;
-  else if (max !== null && price <= max) score += 18;
-  else if (min !== null && price >= min) score += 8;
-  if (!prefs.lifestyle || prefs.lifestyle === "any") score += 15;
-  if (!prefs.smoking || prefs.smoking === "any") score += 10;
-  if (!prefs.genderPref || prefs.genderPref === "any") score += 5;
-  return score;
-}
-
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -61,6 +45,7 @@ export default function Dashboard() {
   const [updatingRequest, setUpdatingRequest] = useState<number | null>(null);
   const [topPeopleMatches, setTopPeopleMatches] = useState<PeopleMatchResult[]>([]);
   const [fullProfile, setFullProfile] = useState<FullProfileResponse | null>(null);
+  const [listingMatches, setListingMatches] = useState<ListingMatchEntry[]>([]);
 
   useEffect(() => {
     if (!isAuthLoading && !user) setLocation("/login");
@@ -69,11 +54,6 @@ export default function Dashboard() {
   const { data: myListings, isLoading: isListingsLoading } = useGetMyListings({
     query: { enabled: !!user && user.role === "owner" }
   });
-
-  const { data: allListings } = useGetListings(
-    {},
-    { query: { enabled: !!user && user.role === "seeker" } }
-  );
 
   const deleteMutation = useDeleteListing({
     mutation: {
@@ -93,6 +73,9 @@ export default function Dashboard() {
       api.getFavorites().then(f => setFavorites(Array.isArray(f) ? f : [])).catch(() => {});
       api.getProfile().then(p => setFullProfile(p)).catch(() => {});
       api.getPeopleMatches().then(matches => setTopPeopleMatches(Array.isArray(matches) ? matches.slice(0, 3) : [])).catch(() => {});
+      api.getListingMatches()
+        .then(res => setListingMatches(res.hasPreferences ? res.matches : []))
+        .catch(() => setListingMatches([]));
     }
   }, [user]);
 
@@ -128,14 +111,10 @@ export default function Dashboard() {
   }
 
   const displayName = user.name || user.email.split("@")[0];
-  const topMatches = preferences && allListings
-    ? [...allListings]
-        .map(l => ({ listing: l, score: scoreMatch(l, preferences) }))
-        .sort((a, b) => b.score - a.score)
-        .filter(x => x.score > 0)
-        .slice(0, 4)
-        .map(x => x.listing)
-    : [];
+  const topMatches = listingMatches
+    .filter(m => m.score !== null && m.score > 0)
+    .slice(0, 4)
+    .map(m => m.listing);
 
   const pendingRequests = requests.filter(r => r.status === "pending");
 

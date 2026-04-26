@@ -1,10 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import type { userProfilesTable, userPreferencesTable } from "@workspace/db";
-import { computeMatchScore } from "./matching";
+import type { userProfilesTable, userPreferencesTable, listingsTable } from "@workspace/db";
+import { computeMatchScore, computeListingMatchScore, hasUsefulPreferences } from "./matching";
 
 type Profile = typeof userProfilesTable.$inferSelect;
 type Prefs = typeof userPreferencesTable.$inferSelect;
+type Listing = typeof listingsTable.$inferSelect;
 
 const baseProfile: Profile = {
   id: 1,
@@ -43,6 +44,46 @@ function profile(overrides: Partial<Profile> = {}): Profile {
 
 function prefs(overrides: Partial<Prefs> = {}): Prefs {
   return { ...basePrefs, ...overrides };
+}
+
+const baseListing: Listing = {
+  id: 1,
+  title: "Test listing",
+  description: null,
+  price: "2500",
+  city: "Riyadh",
+  images: [],
+  ownerId: 1,
+  viewCount: 0,
+  contactClickCount: 0,
+  createdAt: new Date(0),
+  propertyType: null,
+  bedrooms: null,
+  bathrooms: null,
+  area: null,
+  floor: null,
+  isFurnished: null,
+  neighborhood: null,
+  amenities: [],
+  deposit: null,
+  billsIncluded: null,
+  agencyFees: null,
+  availableFrom: null,
+  smokingAllowed: null,
+  petsAllowed: null,
+  guestsAllowed: null,
+  genderPreference: null,
+  quietHours: null,
+  minStay: null,
+  maxStay: null,
+  roommateNote: null,
+  latitude: null,
+  longitude: null,
+  address: null,
+};
+
+function listing(overrides: Partial<Listing> = {}): Listing {
+  return { ...baseListing, ...overrides };
 }
 
 describe("computeMatchScore", () => {
@@ -283,5 +324,204 @@ describe("computeMatchScore", () => {
       );
       assert.equal(result.breakdown.city, 0);
     });
+  });
+});
+
+describe("hasUsefulPreferences", () => {
+  it("returns false for null prefs", () => {
+    assert.equal(hasUsefulPreferences(null), false);
+  });
+
+  it("returns false when prefs are all default/empty", () => {
+    assert.equal(hasUsefulPreferences(prefs()), false);
+  });
+
+  it("returns false when prefs only contain 'any' values", () => {
+    assert.equal(
+      hasUsefulPreferences(prefs({ lifestyle: "any", smoking: "any", genderPref: "any" })),
+      false,
+    );
+  });
+
+  it("returns false for whitespace-only city", () => {
+    assert.equal(hasUsefulPreferences(prefs({ city: "   " })), false);
+  });
+
+  it("returns true when city is set", () => {
+    assert.equal(hasUsefulPreferences(prefs({ city: "Riyadh" })), true);
+  });
+
+  it("returns true when budget is set", () => {
+    assert.equal(hasUsefulPreferences(prefs({ budgetMin: "1000" })), true);
+  });
+
+  it("returns true when lifestyle is set to a real value", () => {
+    assert.equal(hasUsefulPreferences(prefs({ lifestyle: "quiet" })), true);
+  });
+
+  it("returns true when wantedAmenities is non-empty", () => {
+    assert.equal(hasUsefulPreferences(prefs({ wantedAmenities: ["wifi"] })), true);
+  });
+});
+
+describe("computeListingMatchScore", () => {
+  it("returns a neutral 50 score when prefs are null (every factor neutral)", () => {
+    const result = computeListingMatchScore(null, listing());
+    assert.equal(result.breakdown.city, 50);
+    assert.equal(result.breakdown.budget, 50);
+    assert.equal(result.breakdown.lifestyle, 50);
+    assert.equal(result.breakdown.smoking, 50);
+    assert.equal(result.breakdown.amenities, 50);
+    assert.equal(result.score, 50);
+  });
+
+  it("returns a perfect 100 when every factor matches", () => {
+    const p = prefs({
+      city: "Riyadh",
+      budgetMin: "2000",
+      budgetMax: "3000",
+      lifestyle: "social",
+      smoking: "no",
+      wantedAmenities: ["wifi", "parking"],
+    });
+    const l = listing({
+      city: "Riyadh",
+      price: "2500",
+      smokingAllowed: false,
+      guestsAllowed: true,
+      amenities: ["wifi", "parking", "ac"],
+    });
+    const result = computeListingMatchScore(p, l);
+    assert.equal(result.breakdown.city, 100);
+    assert.equal(result.breakdown.budget, 100);
+    assert.equal(result.breakdown.lifestyle, 100);
+    assert.equal(result.breakdown.smoking, 100);
+    assert.equal(result.breakdown.amenities, 100);
+    assert.equal(result.score, 100);
+  });
+
+  it("city match is case-insensitive", () => {
+    const result = computeListingMatchScore(
+      prefs({ city: "riyadh" }),
+      listing({ city: "RIYADH" }),
+    );
+    assert.equal(result.breakdown.city, 100);
+  });
+
+  it("scores city 0 when cities are different", () => {
+    const result = computeListingMatchScore(
+      prefs({ city: "Riyadh" }),
+      listing({ city: "Jeddah" }),
+    );
+    assert.equal(result.breakdown.city, 0);
+  });
+
+  it("budget gets 100 within range", () => {
+    const result = computeListingMatchScore(
+      prefs({ budgetMin: "2000", budgetMax: "3000" }),
+      listing({ price: "2500" }),
+    );
+    assert.equal(result.breakdown.budget, 100);
+  });
+
+  it("budget gets 0 when far over max", () => {
+    const result = computeListingMatchScore(
+      prefs({ budgetMin: "2000", budgetMax: "3000" }),
+      listing({ price: "5000" }),
+    );
+    assert.equal(result.breakdown.budget, 0);
+  });
+
+  it("budget gets partial credit when slightly over max (<= 20% over)", () => {
+    const result = computeListingMatchScore(
+      prefs({ budgetMin: "2000", budgetMax: "3000" }),
+      listing({ price: "3300" }),
+    );
+    // 10% over -> 100 - 10*250/100 = 75
+    assert.equal(result.breakdown.budget, 75);
+  });
+
+  it("smoking: pref 'no' + listing not allowed -> 100", () => {
+    const result = computeListingMatchScore(
+      prefs({ smoking: "no" }),
+      listing({ smokingAllowed: false }),
+    );
+    assert.equal(result.breakdown.smoking, 100);
+  });
+
+  it("smoking: pref 'no' + listing allowed -> 0", () => {
+    const result = computeListingMatchScore(
+      prefs({ smoking: "no" }),
+      listing({ smokingAllowed: true }),
+    );
+    assert.equal(result.breakdown.smoking, 0);
+  });
+
+  it("amenities: scores by ratio of wanted amenities present", () => {
+    const result = computeListingMatchScore(
+      prefs({ wantedAmenities: ["wifi", "parking", "ac", "kitchen"] }),
+      listing({ amenities: ["wifi", "parking"] }),
+    );
+    assert.equal(result.breakdown.amenities, 50);
+  });
+
+  it("amenities: 100 when all wanted are present", () => {
+    const result = computeListingMatchScore(
+      prefs({ wantedAmenities: ["wifi"] }),
+      listing({ amenities: ["wifi", "parking"] }),
+    );
+    assert.equal(result.breakdown.amenities, 100);
+  });
+
+  it("lifestyle 'quiet' rewards listings with quiet hours", () => {
+    const result = computeListingMatchScore(
+      prefs({ lifestyle: "quiet" }),
+      listing({ quietHours: "10pm - 7am" }),
+    );
+    assert.equal(result.breakdown.lifestyle, 100);
+  });
+
+  it("lifestyle 'social' is incompatible with no-guests listings", () => {
+    const result = computeListingMatchScore(
+      prefs({ lifestyle: "social" }),
+      listing({ guestsAllowed: false }),
+    );
+    assert.equal(result.breakdown.lifestyle, 0);
+  });
+
+  it("applies weights correctly: city 30 / budget 35 / lifestyle 10 / smoking 10 / amenities 15", () => {
+    const result = computeListingMatchScore(
+      prefs({ city: "Riyadh", budgetMin: "10000", budgetMax: "20000" }),
+      listing({ city: "Riyadh", price: "2500" }),
+    );
+    assert.equal(result.breakdown.city, 100);
+    assert.equal(result.breakdown.budget, 0);
+    assert.equal(result.breakdown.lifestyle, 50);
+    assert.equal(result.breakdown.smoking, 50);
+    assert.equal(result.breakdown.amenities, 50);
+    // city*0.3 + budget*0.35 + lifestyle*0.1 + smoking*0.1 + amenities*0.15
+    //  = 30 + 0 + 5 + 5 + 7.5 = 47.5 -> 48
+    assert.equal(result.score, 48);
+  });
+
+  it("is deterministic across repeated calls", () => {
+    const p = prefs({
+      city: "Jeddah",
+      budgetMin: "2000",
+      budgetMax: "3500",
+      lifestyle: "social",
+      smoking: "no",
+      wantedAmenities: ["wifi"],
+    });
+    const l = listing({
+      city: "Jeddah",
+      price: "2800",
+      smokingAllowed: false,
+      guestsAllowed: true,
+      amenities: ["wifi"],
+    });
+    const r1 = computeListingMatchScore(p, l);
+    const r2 = computeListingMatchScore(p, l);
+    assert.deepEqual(r1, r2);
   });
 });

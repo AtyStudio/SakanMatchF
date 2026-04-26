@@ -100,6 +100,30 @@ export interface PeopleMatchResult {
   matchReasons: string[];
 }
 
+export interface ListingMatchBreakdown {
+  city: number;
+  budget: number;
+  lifestyle: number;
+  smoking: number;
+  amenities: number;
+}
+
+export interface ListingMatchEntry {
+  listing: import("@workspace/api-client-react").ListingResponse;
+  score: number | null;
+  breakdown: ListingMatchBreakdown | null;
+  matchReasons: string[];
+}
+
+export interface ListingMatchesResponse {
+  hasPreferences: boolean;
+  matches: ListingMatchEntry[];
+}
+
+export interface SingleListingMatchResponse extends ListingMatchEntry {
+  hasPreferences: boolean;
+}
+
 export interface PreferencesPayload {
   city?: string | null;
   budgetMin?: number | null;
@@ -238,6 +262,9 @@ export const api = {
     const q = qs.toString();
     return apiFetch<import("@workspace/api-client-react").ListingResponse[]>(`/listings${q ? `?${q}` : ""}`);
   },
+
+  getListingMatches: () => apiFetch<ListingMatchesResponse>("/listings/matches"),
+  getListingMatch: (id: number) => apiFetch<SingleListingMatchResponse>(`/listings/${id}/match`),
 
   reportListing: (listingId: number, reason: string) =>
     apiFetch<{ success: boolean }>(`/listings/${listingId}/report`, { method: "POST", body: JSON.stringify({ reason }) }),

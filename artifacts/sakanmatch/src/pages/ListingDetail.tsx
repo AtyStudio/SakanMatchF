@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { useRoute, Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { formatPrice } from "@/lib/utils";
-import { api, type PreferencesResponse } from "@/lib/api";
+import { api, type SingleListingMatchResponse } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, ArrowLeft, Calendar, ChevronLeft, ChevronRight,
@@ -30,65 +30,6 @@ const AMENITY_ICONS: Record<string, React.ReactNode> = {
   ac: <AirVent className="w-4 h-4" />,
   heating: <Flame className="w-4 h-4" />,
 };
-
-function computeMatchScore(prefs: PreferencesResponse | null, listing: ListingResponse) {
-  if (!prefs) return null;
-
-  type Factor = { nameKey: string; match: boolean };
-  const factors: Factor[] = [];
-
-  if (prefs.city) {
-    factors.push({
-      nameKey: "matchCity",
-      match: listing.city.toLowerCase().includes(prefs.city.toLowerCase()),
-    });
-  }
-
-  const budgetMin = prefs.budgetMin ? parseFloat(prefs.budgetMin) : null;
-  const budgetMax = prefs.budgetMax ? parseFloat(prefs.budgetMax) : null;
-  if (budgetMin !== null || budgetMax !== null) {
-    factors.push({
-      nameKey: "matchBudget",
-      match:
-        (budgetMin === null || listing.price >= budgetMin) &&
-        (budgetMax === null || listing.price <= budgetMax),
-    });
-  }
-
-  if (prefs.smoking && prefs.smoking !== "any" && listing.smokingAllowed !== null && listing.smokingAllowed !== undefined) {
-    factors.push({
-      nameKey: "matchSmoking",
-      match:
-        (prefs.smoking === "yes" && !!listing.smokingAllowed) ||
-        (prefs.smoking === "no" && !listing.smokingAllowed),
-    });
-  }
-
-  if (prefs.genderPref && prefs.genderPref !== "any" && listing.genderPreference && listing.genderPreference !== "any") {
-    factors.push({
-      nameKey: "matchGender",
-      match: prefs.genderPref === listing.genderPreference,
-    });
-  }
-
-  const wantedAmenities = prefs.wantedAmenities ?? [];
-  if (wantedAmenities.length > 0 && (listing.amenities ?? []).length > 0) {
-    const listingAmenities = listing.amenities ?? [];
-    const matched = wantedAmenities.filter(a => listingAmenities.includes(a));
-    factors.push({
-      nameKey: "matchAmenities",
-      match: matched.length > 0,
-    });
-  }
-
-  if (factors.length === 0) return null;
-
-  const matched = factors.filter(f => f.match);
-  return {
-    score: Math.round((matched.length / factors.length) * 100),
-    reasons: matched.slice(0, 3).map(f => f.nameKey),
-  };
-}
 
 function ReportModal({
   listingId,
@@ -198,7 +139,7 @@ export default function ListingDetail() {
   const [isMsgSending, setIsMsgSending] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
-  const [preferences, setPreferences] = useState<PreferencesResponse | null | undefined>(undefined);
+  const [matchData, setMatchData] = useState<SingleListingMatchResponse | null | undefined>(undefined);
   const [similarListings, setSimilarListings] = useState<ListingResponse[]>([]);
 
   const recordContactClickMutation = useRecordContactClick();
@@ -225,9 +166,11 @@ export default function ListingDetail() {
   }, [id]);
 
   useEffect(() => {
-    if (!isSeeker) return;
-    api.getPreferences().then(p => setPreferences(p)).catch(() => setPreferences(null));
-  }, [isSeeker]);
+    if (!isSeeker || !id) return;
+    api.getListingMatch(id)
+      .then(res => setMatchData(res))
+      .catch(() => setMatchData(null));
+  }, [isSeeker, id]);
 
   useEffect(() => {
     if (!listing?.city || !id) return;
@@ -351,16 +294,18 @@ export default function ListingDetail() {
   const hasFinancials = !!(listing.deposit || listing.billsIncluded !== null || listing.agencyFees || listing.availableFrom);
   const hasHouseRules = !!(listing.smokingAllowed !== null || listing.petsAllowed !== null || listing.guestsAllowed !== null || listing.genderPreference || listing.quietHours || listing.minStay || listing.maxStay);
 
-  const matchResult = isSeeker && preferences !== undefined ? computeMatchScore(preferences ?? null, listing) : undefined;
+  const matchScore = isSeeker && matchData && matchData.hasPreferences && matchData.score !== null
+    ? matchData.score
+    : null;
 
-  const scoreColor = matchResult
-    ? matchResult.score >= 80 ? "text-green-600 dark:text-green-400"
-      : matchResult.score >= 50 ? "text-amber-600 dark:text-amber-400"
+  const scoreColor = matchScore !== null
+    ? matchScore >= 80 ? "text-green-600 dark:text-green-400"
+      : matchScore >= 50 ? "text-amber-600 dark:text-amber-400"
       : "text-red-500"
     : "";
-  const scoreBarColor = matchResult
-    ? matchResult.score >= 80 ? "bg-green-500"
-      : matchResult.score >= 50 ? "bg-amber-500"
+  const scoreBarColor = matchScore !== null
+    ? matchScore >= 80 ? "bg-green-500"
+      : matchScore >= 50 ? "bg-amber-500"
       : "bg-red-500"
     : "";
 
@@ -676,11 +621,11 @@ export default function ListingDetail() {
                   <h2 className="text-xl font-display font-bold text-foreground">{t("listings.detail.matchScore")}</h2>
                 </div>
 
-                {preferences === undefined ? (
+                {matchData === undefined ? (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" /> {t("common.loading")}
                   </div>
-                ) : preferences === null || !matchResult ? (
+                ) : matchScore === null ? (
                   <div className="text-center py-4">
                     <Sparkles className="w-8 h-8 text-primary/40 mx-auto mb-3" />
                     <p className="text-muted-foreground text-sm mb-4">{t("listings.detail.matchNoPreferences")}</p>
@@ -692,20 +637,20 @@ export default function ListingDetail() {
                 ) : (
                   <div className="space-y-4">
                     <div className="flex items-end gap-4">
-                      <span className={cn("text-5xl font-display font-bold", scoreColor)}>{matchResult.score}%</span>
+                      <span className={cn("text-5xl font-display font-bold", scoreColor)}>{matchScore}%</span>
                       <div className="flex-1 pb-1.5">
                         <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
                           <div className={cn("h-full rounded-full transition-all duration-700", scoreBarColor)}
-                            style={{ width: `${matchResult.score}%` }} />
+                            style={{ width: `${matchScore}%` }} />
                         </div>
                       </div>
                     </div>
-                    {matchResult.reasons.length > 0 && (
+                    {matchData && matchData.matchReasons.length > 0 && (
                       <div className="flex flex-wrap gap-2">
-                        {matchResult.reasons.map(r => (
+                        {matchData.matchReasons.slice(0, 4).map(r => (
                           <span key={r} className="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 px-2.5 py-1 rounded-full">
                             <Check className="w-3 h-3" />
-                            {t(`listings.detail.${r}`)}
+                            {r}
                           </span>
                         ))}
                       </div>

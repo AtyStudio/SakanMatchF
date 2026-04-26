@@ -1,9 +1,14 @@
 import { Router } from "express";
-import { db, listingsTable, usersTable, requestsTable, listingReportsTable } from "@workspace/db";
+import { db, listingsTable, usersTable, requestsTable, listingReportsTable, userPreferencesTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireOwner, optionalAuth, type AuthRequest } from "../middlewares/auth";
+import {
+  computeListingMatchScore,
+  hasUsefulPreferences,
+  type ListingMatchBreakdown,
+} from "../services/matching";
 
 const router = Router();
 
@@ -174,6 +179,126 @@ router.get("/my", requireAuth, async (req: AuthRequest, res) => {
     res.json(rowsWithCounts.map(r => formatListing(r, showAnalytics)));
   } catch (err) {
     req.log.error({ err }, "Get my listings error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+interface ListingMatchEntry {
+  listing: ReturnType<typeof formatListing>;
+  score: number | null;
+  breakdown: ListingMatchBreakdown | null;
+  matchReasons: string[];
+}
+
+interface ListingMatchesResponse {
+  hasPreferences: boolean;
+  matches: ListingMatchEntry[];
+}
+
+async function loadListingsWithOwner(filter?: { id?: number }) {
+  const query = db
+    .select({
+      ...listingCols,
+      ownerEmail: usersTable.email,
+      ownerName: usersTable.name,
+      ownerIsPremium: usersTable.isPremium,
+      ownerCreatedAt: usersTable.createdAt,
+    })
+    .from(listingsTable)
+    .leftJoin(usersTable, eq(listingsTable.ownerId, usersTable.id));
+
+  if (filter?.id !== undefined) {
+    return query.where(eq(listingsTable.id, filter.id));
+  }
+  return query.orderBy(sql`${usersTable.isPremium} DESC NULLS LAST, ${listingsTable.createdAt} DESC`);
+}
+
+router.get("/matches", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const [prefs] = await db
+      .select()
+      .from(userPreferencesTable)
+      .where(eq(userPreferencesTable.userId, userId))
+      .limit(1);
+
+    const rows = (await loadListingsWithOwner()) as ListingRow[];
+    const hasPrefs = hasUsefulPreferences(prefs ?? null);
+
+    const matches: ListingMatchEntry[] = rows.map(row => {
+      const listing = formatListing(row);
+      if (!hasPrefs) {
+        return { listing, score: null, breakdown: null, matchReasons: [] };
+      }
+      const result = computeListingMatchScore(prefs ?? null, row);
+      return {
+        listing,
+        score: result.score,
+        breakdown: result.breakdown,
+        matchReasons: result.matchReasons,
+      };
+    });
+
+    if (hasPrefs) {
+      matches.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    }
+
+    const response: ListingMatchesResponse = {
+      hasPreferences: hasPrefs,
+      matches,
+    };
+    res.json(response);
+  } catch (err) {
+    req.log.error({ err }, "Listing matches error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/match", requireAuth, async (req: AuthRequest, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid listing ID" });
+    return;
+  }
+
+  try {
+    const [row] = (await loadListingsWithOwner({ id })) as ListingRow[];
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const [prefs] = await db
+      .select()
+      .from(userPreferencesTable)
+      .where(eq(userPreferencesTable.userId, req.user!.id))
+      .limit(1);
+
+    const listing = formatListing(row);
+    const hasPrefs = hasUsefulPreferences(prefs ?? null);
+
+    if (!hasPrefs) {
+      const empty: ListingMatchEntry = {
+        listing,
+        score: null,
+        breakdown: null,
+        matchReasons: [],
+      };
+      res.json({ hasPreferences: false, ...empty });
+      return;
+    }
+
+    const result = computeListingMatchScore(prefs ?? null, row);
+    const entry: ListingMatchEntry = {
+      listing,
+      score: result.score,
+      breakdown: result.breakdown,
+      matchReasons: result.matchReasons,
+    };
+    res.json({ hasPreferences: true, ...entry });
+  } catch (err) {
+    req.log.error({ err }, "Listing match error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
