@@ -8,14 +8,54 @@ import { api, type RequestItem, type Conversation, type FavoriteListing, type Pr
 import {
   PlusCircle, Crown, Trash2, Home, User, Shield, Search,
   Heart, MessageSquare, Send, Star, Sliders, CheckCircle, XCircle, Clock, ArrowRight,
-  Eye, MousePointerClick, Users, Lock
+  Eye, MousePointerClick, Users, Lock, ChevronDown, ChevronUp, TrendingUp
 } from "lucide-react";
+import { MatchBreakdown } from "@/components/MatchBreakdown";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/utils";
 import type { ListingResponse } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
+
+function TopMatchCard({ entry, index }: { entry: ListingMatchEntry; index: number }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const score = entry.score ?? 0;
+  const scoreColor =
+    score >= 75 ? "text-green-700 dark:text-green-400"
+      : score >= 45 ? "text-amber-700 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
+
+  return (
+    <div className="flex flex-col">
+      <ListingCard listing={entry.listing} index={index} squareBottom={!!entry.breakdown} />
+      {entry.breakdown && (
+        <div className="bg-card border border-t-0 border-border/50 rounded-b-2xl px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setOpen(o => !o)}
+            className="w-full flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            aria-expanded={open}
+          >
+            <span className="flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-primary" />
+              <span className={cn("font-bold", scoreColor)}>{score}%</span>
+              <span>·</span>
+              <span>{open ? t("listings.detail.matchHideBreakdown") : t("listings.detail.matchShowBreakdown")}</span>
+            </span>
+            {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          {open && (
+            <div className="mt-3 pt-3 border-t border-border/60">
+              <MatchBreakdown breakdown={entry.breakdown} compact />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function computeCompletion(profile: FullProfileResponse): number {
   const profileFields = ["fullName", "age", "gender", "occupation", "bio", "cleanlinessLevel", "sleepSchedule", "noiseTolerance", "guestPreference", "petPreference", "moveInDate"] as const;
@@ -113,8 +153,7 @@ export default function Dashboard() {
   const displayName = user.name || user.email.split("@")[0];
   const topMatches = listingMatches
     .filter(m => m.score !== null && m.score > 0)
-    .slice(0, 4)
-    .map(m => m.listing);
+    .slice(0, 4);
 
   const pendingRequests = requests.filter(r => r.status === "pending");
 
@@ -292,7 +331,9 @@ export default function Dashboard() {
                     </div>
                   ) : topMatches.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {topMatches.map((l, i) => <ListingCard key={l.id} listing={l} index={i} />)}
+                      {topMatches.map((m, i) => (
+                        <TopMatchCard key={m.listing.id} entry={m} index={i} />
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-10 bg-background rounded-2xl border border-dashed border-border">

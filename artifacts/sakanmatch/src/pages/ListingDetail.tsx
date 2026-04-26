@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { ListingCard } from "@/components/ListingCard";
 import { MapDisplay } from "@/components/MapDisplay";
+import { MatchBreakdown } from "@/components/MatchBreakdown";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80";
 
@@ -635,7 +636,7 @@ export default function ListingDetail() {
                     </Link>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     <div className="flex items-end gap-4">
                       <span className={cn("text-5xl font-display font-bold", scoreColor)}>{matchScore}%</span>
                       <div className="flex-1 pb-1.5">
@@ -653,6 +654,11 @@ export default function ListingDetail() {
                             {r}
                           </span>
                         ))}
+                      </div>
+                    )}
+                    {matchData?.breakdown && (
+                      <div className="pt-4 border-t border-border/60">
+                        <MatchBreakdown breakdown={matchData.breakdown} />
                       </div>
                     )}
                   </div>
